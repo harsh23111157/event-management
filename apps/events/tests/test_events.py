@@ -112,3 +112,14 @@ class EventWorkflowTests(TestCase):
         resp = client.get(f"/events/{self.event.id}/edit/")
         self.assertEqual(resp.status_code, 403)
 
+    def test_event_form_validation(self):
+        from apps.events.forms import EventForm
+        form = EventForm(data={})
+        self.assertFalse(form.is_valid())
+        self.assertIn("name", form.errors)
+        self.assertIn("venue", form.errors)
+        self.assertIn("manager", form.errors)
+        self.assertIn("expected_attendees", form.errors)
+        self.assertIn("budget", form.errors)
+
+

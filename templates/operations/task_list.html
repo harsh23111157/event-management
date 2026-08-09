@@ -5,6 +5,12 @@
 {% block heading %}{% if is_staff_member %}My Tasks{% else %}Tasks & Operations{% endif %}{% endblock %}
 {% block subheading %}Track task execution, blockers, priority items, and deadlines.{% endblock %}
 
+{% block topbar_actions %}
+  {% if can_create_task %}
+    <a href="{% url 'task_create_global' %}" class="btn btn-primary btn-sm">+ Create Task</a>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
 <!-- TASK STATUS PIPELINE CHIPS -->
 <div class="pipeline-bar">

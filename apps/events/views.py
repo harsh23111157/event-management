@@ -156,7 +156,9 @@ class EventDetailView(LoginRequiredMixin, DetailView):
         # Role and Action Permissions
         ctx["is_event_owner"] = (event.manager_id == user.id)
         ctx["can_manage"] = user.is_admin or (user.is_event_manager and event.manager_id == user.id)
-        ctx["can_edit_event"] = (user.is_admin or (user.is_event_manager and event.manager_id == user.id)) and event.status in (EventStatus.DRAFT, EventStatus.REJECTED)
+        can_edit = (user.is_admin or (user.is_event_manager and event.manager_id == user.id)) and event.status in (EventStatus.DRAFT, EventStatus.REJECTED)
+        ctx["can_edit"] = can_edit
+        ctx["can_edit_event"] = can_edit
         ctx["can_approve"] = user.is_admin
         ctx["can_finance"] = user.is_admin or user.is_finance
         ctx["active_tab"] = self.request.GET.get("tab", "overview")
@@ -232,16 +234,33 @@ class EventWorkflowActionView(LoginRequiredMixin, View):
 
     def post(self, request, pk, action):
         event = get_object_or_404(Event, pk=pk)
+        from apps.operations.models import NotificationService, NotificationType
         try:
             if action == "submit":
                 EventWorkflowService.submit_event(event, request.user)
                 messages.success(request, f"Event '{event.name}' submitted for approval.")
             elif action == "approve":
                 EventWorkflowService.approve_event(event, request.user)
+                if event.manager:
+                    NotificationService.send(
+                        recipient=event.manager,
+                        title=f"Event Approved: {event.name}",
+                        message=f"Your event '{event.name}' has been approved by Administrator {request.user.get_full_name() or request.user.username}.",
+                        notification_type=NotificationType.EVENT_STATUS,
+                        link=f"/events/{event.id}/",
+                    )
                 messages.success(request, f"Event '{event.name}' approved successfully.")
             elif action == "reject":
                 reason = request.POST.get("reason", "").strip()
                 EventWorkflowService.reject_event(event, request.user, reason)
+                if event.manager:
+                    NotificationService.send(
+                        recipient=event.manager,
+                        title=f"Event Returned: {event.name}",
+                        message=f"Your event '{event.name}' was returned for revision. Reason: {reason or 'Not specified'}",
+                        notification_type=NotificationType.EVENT_STATUS,
+                        link=f"/events/{event.id}/",
+                    )
                 messages.warning(request, f"Event '{event.name}' has been rejected.")
             elif action == "start":
                 EventWorkflowService.start_event(event, request.user)
@@ -262,4 +281,5 @@ class EventWorkflowActionView(LoginRequiredMixin, View):
         except ValueError as exc:
             messages.error(request, str(exc))
         return redirect("event_detail", pk=event.id)
+
 

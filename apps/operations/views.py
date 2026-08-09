@@ -1,8 +1,10 @@
-"""Web views for tasks, staff, schedules, and attendance."""
+"""Web views for tasks, staff, schedules, attendance, and notifications."""
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -12,8 +14,17 @@ from django.views.generic import CreateView, ListView, UpdateView
 from apps.accounts.permissions import is_event_manager_or_admin
 from apps.events.models import Event
 
-from .forms import EventStaffForm, EventTaskForm, ScheduleForm, StaffTaskUpdateForm
-from .models import Attendance, AttendanceStatus, EventStaff, EventTask, Schedule, TaskPriority, TaskStatus
+from .forms import (
+    EventStaffForm, EventTaskForm, ManagerAttendanceForm,
+    ScheduleForm, StaffTaskUpdateForm
+)
+from .models import (
+    Attendance, AttendanceStatus, EventStaff, EventTask,
+    Notification, NotificationService, NotificationType,
+    Schedule, TaskPriority, TaskStatus
+)
+
+User = get_user_model()
 
 
 class TaskListView(LoginRequiredMixin, ListView):
@@ -86,7 +97,39 @@ class TaskListView(LoginRequiredMixin, ListView):
         return ctx
 
 
+class GlobalEventTaskCreateView(LoginRequiredMixin, CreateView):
+    """Allows creating a task from the global task list, selecting the event."""
+    model = EventTask
+    form_class = EventTaskForm
+    template_name = "operations/task_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not is_event_manager_or_admin(request.user):
+            raise PermissionDenied("Only Event Managers and Administrators can create tasks.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kw = super().get_form_kwargs()
+        kw["user"] = self.request.user
+        return kw
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["is_global_create"] = True
+        ctx["is_staff_edit"] = False
+        return ctx
+
+    def form_valid(self, form):
+        from apps.audit.services import AuditService
+        task = form.save()
+        AuditService.log(self.request.user, "TASK_ASSIGN", "task", task.id,
+                         f"Created task '{task.title}' for event '{task.event.name}' assigned to {task.assigned_to or 'Unassigned'}")
+        messages.success(self.request, f"Task '{task.title}' created successfully.")
+        return redirect("task_list")
+
+
 class EventTaskCreateView(LoginRequiredMixin, CreateView):
+    """Creates a task pre-scoped to a specific event."""
     model = EventTask
     form_class = EventTaskForm
     template_name = "operations/task_form.html"
@@ -107,6 +150,7 @@ class EventTaskCreateView(LoginRequiredMixin, CreateView):
     def get_form_kwargs(self):
         kw = super().get_form_kwargs()
         kw["event"] = self.event
+        kw["user"] = self.request.user
         return kw
 
     def form_valid(self, form):
@@ -129,6 +173,7 @@ class EventTaskUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_form_kwargs(self):
         kw = super().get_form_kwargs()
+        kw["user"] = self.request.user
         if not self.request.user.is_staff_member:
             kw["event"] = self.object.event
         return kw
@@ -160,6 +205,7 @@ class EventTaskUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         from apps.audit.services import AuditService
+        from apps.operations.models import NotificationService, NotificationType
         old_status = self.object.status
         task = form.save(commit=False)
         if task.status == TaskStatus.COMPLETED and old_status != TaskStatus.COMPLETED:
@@ -167,11 +213,24 @@ class EventTaskUpdateView(LoginRequiredMixin, UpdateView):
         elif task.status != TaskStatus.COMPLETED:
             task.completed_at = None
         task.save()
+
+        # Send notification to event manager if updated by staff
+        if self.request.user.is_staff_member and task.event and task.event.manager:
+            updater_name = self.request.user.get_full_name() or self.request.user.username
+            NotificationService.send(
+                recipient=task.event.manager,
+                title=f"Task Progress Updated: {task.title}",
+                message=f"{updater_name} updated task '{task.title}' to status '{task.get_status_display()}'. Notes: {task.notes or 'None'}",
+                notification_type=NotificationType.TASK_UPDATED,
+                link=f"/events/{task.event.id}/#tasks",
+            )
+
         if old_status != task.status:
             AuditService.log(self.request.user, "TASK_STATUS_CHANGE", "task", task.id,
                              f"Task '{task.title}' status changed: {old_status} -> {task.status}")
         messages.success(self.request, f"Task '{task.title}' updated successfully.")
         return redirect("task_list")
+
 
 
 class EventStaffCreateView(LoginRequiredMixin, CreateView):
@@ -201,7 +260,7 @@ class EventStaffCreateView(LoginRequiredMixin, CreateView):
         assignment = form.save()
         AuditService.log(self.request.user, "STAFF_ASSIGN", "eventstaff", assignment.id,
                          f"Assigned staff {assignment.staff.get_full_name()} to {self.event.name}")
-        messages.success(self.request, f"Staff '{assignment.staff.get_full_name()}' assigned to event.")
+        messages.success(self.request, f"Staff '{assignment.staff.get_full_name() or assignment.staff.username}' assigned to event.")
         return redirect("event_detail", pk=self.event.id)
 
 
@@ -264,6 +323,13 @@ class AttendanceListView(LoginRequiredMixin, ListView):
         if user.is_staff_member:
             # Active assignments where staff can check in/out
             ctx["my_assignments"] = EventStaff.objects.filter(staff=user).select_related("event")
+        if user.is_admin or user.is_event_manager:
+            events_qs = Event.objects.filter(status__in=["APPROVED", "IN_PROGRESS"])
+            if user.is_event_manager:
+                events_qs = events_qs.filter(manager=user)
+            ctx["active_events"] = events_qs
+            ctx["can_manage_attendance"] = True
+            ctx["status_choices"] = AttendanceStatus.choices
         return ctx
 
 
@@ -284,7 +350,7 @@ class AttendanceCheckInView(LoginRequiredMixin, View):
             messages.success(request, f"Checked in to {event.name} successfully.")
         else:
             messages.info(request, f"Already checked in at {att.check_in.strftime('%H:%M')}.")
-        return redirect(request.META.get("HTTP_REFERER", "dashboard"))
+        return redirect(request.META.get("HTTP_REFERER", "attendance_list"))
 
 
 class AttendanceCheckOutView(LoginRequiredMixin, View):
@@ -297,5 +363,140 @@ class AttendanceCheckOutView(LoginRequiredMixin, View):
         from apps.audit.services import AuditService
         AuditService.log(user, "ATTENDANCE_CHECKOUT", "attendance", att.id, f"Checked out of {event.name}")
         messages.success(request, f"Checked out of {event.name} successfully.")
-        return redirect(request.META.get("HTTP_REFERER", "dashboard"))
+        return redirect(request.META.get("HTTP_REFERER", "attendance_list"))
+
+
+class ManagerAttendanceRecordView(LoginRequiredMixin, View):
+    """Allows Event Managers and Admins to record or update attendance for any staff member in an event."""
+    def post(self, request, pk):
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+        if not (user.is_admin or (user.is_event_manager and event.manager_id == user.id)):
+            raise PermissionDenied("You do not have permission to manage attendance for this event.")
+
+        staff_id = request.POST.get("staff")
+        status_val = request.POST.get("status", AttendanceStatus.PRESENT)
+        check_in_str = request.POST.get("check_in")
+        check_out_str = request.POST.get("check_out")
+
+        if not staff_id:
+            messages.error(request, "Please select a staff member.")
+            return redirect(request.META.get("HTTP_REFERER", f"/events/{event.id}/#attendance"))
+
+        staff_user = get_object_or_404(User, pk=staff_id)
+        att, _ = Attendance.objects.get_or_create(event=event, staff=staff_user)
+        att.status = status_val
+
+        now = timezone.now()
+        if check_in_str:
+            try:
+                from django.utils.dateparse import parse_datetime
+                parsed_in = parse_datetime(check_in_str)
+                if parsed_in:
+                    att.check_in = timezone.make_aware(parsed_in) if timezone.is_naive(parsed_in) else parsed_in
+            except Exception:
+                pass
+        elif not att.check_in and status_val == AttendanceStatus.PRESENT:
+            att.check_in = now
+
+        if check_out_str:
+            try:
+                from django.utils.dateparse import parse_datetime
+                parsed_out = parse_datetime(check_out_str)
+                if parsed_out:
+                    att.check_out = timezone.make_aware(parsed_out) if timezone.is_naive(parsed_out) else parsed_out
+            except Exception:
+                pass
+
+        att.save()
+        from apps.audit.services import AuditService
+        AuditService.log(user, "ATTENDANCE_UPDATE", "attendance", att.id,
+                         f"Updated attendance for {staff_user.get_full_name() or staff_user.username} at {event.name} -> {att.get_status_display()}")
+        messages.success(request, f"Attendance record updated for {staff_user.get_full_name() or staff_user.username}.")
+        return redirect(request.META.get("HTTP_REFERER", f"/events/{event.id}/#attendance"))
+
+
+class ManagerAttendanceQuickActionView(LoginRequiredMixin, View):
+    """Quick check-in, check-out, or status change for a specific staff member by a manager."""
+    def post(self, request, pk, action):
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+        if not (user.is_admin or (user.is_event_manager and event.manager_id == user.id)):
+            raise PermissionDenied("You do not have permission to manage attendance for this event.")
+
+        staff_id = request.POST.get("staff_id")
+        if not staff_id:
+            messages.error(request, "Staff member ID required.")
+            return redirect(request.META.get("HTTP_REFERER", f"/events/{event.id}/#attendance"))
+
+        staff_user = get_object_or_404(User, pk=staff_id)
+        att, _ = Attendance.objects.get_or_create(event=event, staff=staff_user)
+        now = timezone.now()
+
+        if action == "checkin":
+            att.check_in = now
+            att.status = AttendanceStatus.PRESENT
+            messages.success(request, f"Marked {staff_user.get_full_name() or staff_user.username} as Checked In.")
+        elif action == "checkout":
+            att.check_out = now
+            messages.success(request, f"Marked {staff_user.get_full_name() or staff_user.username} as Checked Out.")
+        elif action == "late":
+            att.status = AttendanceStatus.LATE
+            if not att.check_in:
+                att.check_in = now
+            messages.info(request, f"Marked {staff_user.get_full_name() or staff_user.username} as Late.")
+        elif action == "absent":
+            att.status = AttendanceStatus.ABSENT
+            att.check_in = None
+            att.check_out = None
+            messages.warning(request, f"Marked {staff_user.get_full_name() or staff_user.username} as Absent.")
+        elif action == "present":
+            att.status = AttendanceStatus.PRESENT
+            if not att.check_in:
+                att.check_in = now
+            messages.success(request, f"Marked {staff_user.get_full_name() or staff_user.username} as Present.")
+
+        att.save()
+        return redirect(request.META.get("HTTP_REFERER", f"/events/{event.id}/#attendance"))
+
+
+class NotificationListView(LoginRequiredMixin, ListView):
+    model = Notification
+    template_name = "operations/notification_list.html"
+    context_object_name = "notifications"
+    paginate_by = 25
+
+    def get_queryset(self):
+        return Notification.objects.filter(recipient=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user_notifs = Notification.objects.filter(recipient=self.request.user)
+        ctx["unread_count"] = user_notifs.filter(is_read=False).count()
+        ctx["total_count"] = user_notifs.count()
+        return ctx
+
+
+class NotificationMarkAllReadView(LoginRequiredMixin, View):
+    def post(self, request):
+        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"status": "ok", "unread_count": 0})
+        messages.success(request, "All notifications marked as read.")
+        return redirect(request.META.get("HTTP_REFERER", "notifications"))
+
+
+class NotificationMarkReadView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        notif = get_object_or_404(Notification, pk=pk, recipient=request.user)
+        notif.is_read = True
+        notif.save()
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            unread = Notification.objects.filter(recipient=request.user, is_read=False).count()
+            return JsonResponse({"status": "ok", "unread_count": unread})
+        return redirect(notif.link or request.META.get("HTTP_REFERER", "notifications"))
+
+
+
+
 

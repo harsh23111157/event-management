@@ -102,3 +102,46 @@ class Attendance(models.Model):
 
     def __str__(self) -> str:
         return f"{self.staff} @ {self.event} ({self.status})"
+
+
+class NotificationType(models.TextChoices):
+    TASK_ASSIGNED = "TASK_ASSIGNED", "Task Assigned"
+    TASK_UPDATED = "TASK_UPDATED", "Task Updated"
+    EVENT_ASSIGNED = "EVENT_ASSIGNED", "Event Assigned"
+    EVENT_STATUS = "EVENT_STATUS", "Event Status Change"
+    EXPENSE = "EXPENSE", "Expense Update"
+    ATTENDANCE = "ATTENDANCE", "Attendance Update"
+    GENERAL = "GENERAL", "General Notification"
+
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                 related_name="notifications")
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=30, choices=NotificationType.choices, default=NotificationType.GENERAL)
+    link = models.CharField(max_length=255, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["recipient", "is_read"]), models.Index(fields=["created_at"])]
+
+    def __str__(self) -> str:
+        return f"To {self.recipient}: {self.title} ({'Read' if self.is_read else 'Unread'})"
+
+
+class NotificationService:
+    @staticmethod
+    def send(recipient, title: str, message: str, notification_type: str = NotificationType.GENERAL, link: str = ""):
+        if not recipient:
+            return None
+        return Notification.objects.create(
+            recipient=recipient,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            link=link or "",
+        )
+

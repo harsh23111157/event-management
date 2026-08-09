@@ -493,9 +493,13 @@
     <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
       <div>
         <div class="card-title">Staff On-Site Attendance & Shifts</div>
-        <div class="card-subtitle">Live check-in and check-out logs</div>
+        <div class="card-subtitle">Monitor check-ins, check-outs, and shift timestamps for event staff</div>
       </div>
+      {% if can_manage and staff_list %}
+        <button type="button" class="btn btn-primary btn-sm" onclick="openAttendanceRecordModal()">+ Record / Update Attendance</button>
+      {% endif %}
     </div>
+
     {% if attendances %}
       <table class="table">
         <thead>
@@ -504,15 +508,45 @@
             <th>Check In</th>
             <th>Check Out</th>
             <th>Status</th>
+            {% if can_manage %}<th>Quick Actions</th>{% endif %}
           </tr>
         </thead>
         <tbody>
           {% for att in attendances %}
             <tr>
-              <td><strong>{{ att.staff.get_full_name|default:att.staff.username }}</strong></td>
+              <td>
+                <strong>{{ att.staff.get_full_name|default:att.staff.username }}</strong>
+                <div style="font-size: 12px; color: var(--muted);">{{ att.staff.email }}</div>
+              </td>
               <td>{{ att.check_in|date:"M d, Y · H:i:s"|default:"Not checked in" }}</td>
               <td>{{ att.check_out|date:"M d, Y · H:i:s"|default:"Active on shift" }}</td>
               <td><span class="badge b-{{ att.status|lower }}">{{ att.get_status_display }}</span></td>
+              {% if can_manage %}
+                <td>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <form action="{% url 'attendance_quick_action' event.id 'checkin' %}" method="post" style="margin:0; display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="staff_id" value="{{ att.staff.id }}">
+                      <button type="submit" class="btn btn-success btn-sm" style="padding: 3px 8px; font-size: 11px;" title="Check in now">In</button>
+                    </form>
+                    <form action="{% url 'attendance_quick_action' event.id 'checkout' %}" method="post" style="margin:0; display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="staff_id" value="{{ att.staff.id }}">
+                      <button type="submit" class="btn btn-sm" style="padding: 3px 8px; font-size: 11px;" title="Check out now">Out</button>
+                    </form>
+                    <form action="{% url 'attendance_quick_action' event.id 'late' %}" method="post" style="margin:0; display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="staff_id" value="{{ att.staff.id }}">
+                      <button type="submit" class="btn btn-sm" style="padding: 3px 8px; font-size: 11px; color: var(--warning);" title="Mark Late">Late</button>
+                    </form>
+                    <form action="{% url 'attendance_quick_action' event.id 'absent' %}" method="post" style="margin:0; display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="staff_id" value="{{ att.staff.id }}">
+                      <button type="submit" class="btn btn-sm" style="padding: 3px 8px; font-size: 11px; color: var(--danger);" title="Mark Absent">Absent</button>
+                    </form>
+                  </div>
+                </td>
+              {% endif %}
             </tr>
           {% endfor %}
         </tbody>
@@ -520,11 +554,17 @@
     {% else %}
       <div class="empty-state">
         <div class="empty-icon">⏱</div>
-        <div>No attendance logs recorded for this event.</div>
+        <div>No attendance logs recorded for this event yet.</div>
+        {% if can_manage and staff_list %}
+          <div style="margin-top: 10px;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openAttendanceRecordModal()">+ Record Staff Attendance</button>
+          </div>
+        {% endif %}
       </div>
     {% endif %}
   </div>
 </div>
+
 
 <!-- ============================================================= -->
 <!-- TAB 8: ACTIVITY LOG -->
@@ -602,6 +642,53 @@
   </div>
 </div>
 
+<!-- ATTENDANCE RECORD MODAL (EVENT MANAGER / ADMIN) -->
+<div id="attendanceRecordModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--r-lg); width:460px; max-width:90vw; padding:24px; box-shadow:var(--shadow-lg);">
+    <h3 style="margin-bottom:8px;">Record Staff Attendance</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:14px;">Log shift attendance or adjust timestamp records for assigned crew members.</p>
+    <form method="post" action="{% url 'attendance_record' event.id %}">
+      {% csrf_token %}
+      <div class="form-row">
+        <label class="form-label">Staff Member *</label>
+        <select name="staff" class="form-control" required>
+          <option value="">— Select Assigned Staff Member —</option>
+          {% for s in staff_list %}
+            <option value="{{ s.staff.id }}">{{ s.staff.get_full_name|default:s.staff.username }} ({{ s.role|default:"Operations" }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Attendance Status *</label>
+        <select name="status" class="form-control" required>
+          <option value="PRESENT">Present (On-site)</option>
+          <option value="LATE">Late</option>
+          <option value="ABSENT">Absent</option>
+        </select>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Check-in Time</label>
+          <input type="datetime-local" name="check_in" class="form-control">
+          <span class="form-help" style="font-size:11px; color:var(--muted);">Leave blank for current time</span>
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Check-out Time</label>
+          <input type="datetime-local" name="check_out" class="form-control">
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" class="btn btn-sm" onclick="closeAttendanceRecordModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save Attendance Record</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   function switchTab(tabId) {
     document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
@@ -612,7 +699,9 @@
       targetPane.style.display = 'block';
     }
     
-    event.currentTarget.classList.add('active');
+    if (event && event.currentTarget && event.currentTarget.classList) {
+      event.currentTarget.classList.add('active');
+    }
     history.replaceState(null, null, '#' + tabId);
   }
 
@@ -643,5 +732,13 @@
   function closeExpenseRejectModal() {
     document.getElementById('expenseRejectModal').style.display = 'none';
   }
+
+  function openAttendanceRecordModal() {
+    document.getElementById('attendanceRecordModal').style.display = 'flex';
+  }
+  function closeAttendanceRecordModal() {
+    document.getElementById('attendanceRecordModal').style.display = 'none';
+  }
 </script>
 {% endblock %}
+

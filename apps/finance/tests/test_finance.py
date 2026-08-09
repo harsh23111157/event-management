@@ -73,3 +73,12 @@ class FinanceWorkflowTests(TestCase):
         resp = client.post(f"/expenses/{expense.id}/approve/")
         self.assertEqual(resp.status_code, 403)
 
+    def test_expense_form_validation(self):
+        from apps.finance.forms import ExpenseForm
+        form = ExpenseForm(data={}, user=self.manager)
+        self.assertFalse(form.is_valid())
+        self.assertIn("event", form.errors)
+        self.assertIn("description", form.errors)
+        self.assertIn("amount", form.errors)
+
+

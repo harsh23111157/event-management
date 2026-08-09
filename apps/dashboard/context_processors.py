@@ -6,6 +6,8 @@ def dashboard_nav_context(request):
     ctx = {
         "nav_section": getattr(request, "resolver_match", None) and request.resolver_match.url_name or "",
         "unread_alerts_count": 0,
+        "unread_notifications_count": 0,
+        "recent_notifications": [],
         "is_admin": False,
         "is_event_manager": False,
         "is_finance": False,
@@ -36,8 +38,13 @@ def dashboard_nav_context(request):
         try:
             from apps.events.models import Event, EventStatus
             from apps.finance.models import Expense, ExpenseStatus
-            from apps.operations.models import EventTask, TaskStatus
+            from apps.operations.models import EventTask, Notification, TaskStatus
             now = timezone.now()
+
+            # Notifications
+            notifs = Notification.objects.filter(recipient=user)
+            ctx["unread_notifications_count"] = notifs.filter(is_read=False).count()
+            ctx["recent_notifications"] = list(notifs[:5])
 
             if user.is_admin:
                 p_ev = Event.objects.filter(status=EventStatus.SUBMITTED).count()
@@ -65,4 +72,5 @@ def dashboard_nav_context(request):
             pass
 
     return ctx
+
 

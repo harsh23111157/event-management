@@ -70,3 +70,30 @@ class LogoutViewTests(TestCase):
         resp = self.client.post(reverse("logout"))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse("login"))
+
+
+class UserFormTests(TestCase):
+    def test_user_form_new_user_requires_password_and_mandatory_fields(self):
+        from apps.accounts.forms import UserForm
+        form = UserForm(data={})
+        self.assertFalse(form.is_valid())
+        self.assertIn("username", form.errors)
+        self.assertIn("email", form.errors)
+        self.assertIn("first_name", form.errors)
+        self.assertIn("last_name", form.errors)
+        self.assertIn("password", form.errors)
+
+    def test_user_form_rejects_short_password(self):
+        from apps.accounts.forms import UserForm
+        form = UserForm(data={
+            "username": "newguy",
+            "email": "newguy@test.com",
+            "first_name": "New",
+            "last_name": "Guy",
+            "role": Role.STAFF,
+            "password": "123",
+            "is_active": True,
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("password", form.errors)
+

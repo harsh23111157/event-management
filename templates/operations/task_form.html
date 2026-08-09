@@ -8,26 +8,28 @@
 {% endblock %}
 {% block subheading %}
   {% if is_staff_edit %}Update execution status and record notes or blockers for your assigned task.
-  {% else %}Assign tasks to event staff with priority levels, descriptions, and due dates.{% endif %}
+  {% else %}Assign tasks to staff members with priority levels, instructions, and due dates.{% endif %}
 {% endblock %}
 
 {% block content %}
 <div class="form-card">
-  <!-- TASK CONTEXT BANNER -->
-  <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px; margin-bottom: 20px;">
-    <div style="font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Associated Event</div>
-    <div style="font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px;">
-      <a href="{% url 'event_detail' event.id %}">{{ event.name }}</a>
-    </div>
-    {% if is_staff_edit and task %}
-      <div style="margin-top: 8px; font-size: 13px;">
-        <strong>Task:</strong> {{ task.title }}<br>
-        <strong>Priority:</strong> <span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span><br>
-        <strong>Due Date:</strong> {{ task.due_date|date:"M d, Y · H:i" }}<br>
-        {% if task.description %}<strong>Description:</strong> {{ task.description }}{% endif %}
+  {% if event %}
+    <!-- TASK CONTEXT BANNER -->
+    <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px; margin-bottom: 20px;">
+      <div style="font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Associated Event</div>
+      <div style="font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px;">
+        <a href="{% url 'event_detail' event.id %}">{{ event.name }}</a>
       </div>
-    {% endif %}
-  </div>
+      {% if is_staff_edit and task %}
+        <div style="margin-top: 8px; font-size: 13px;">
+          <strong>Task:</strong> {{ task.title }}<br>
+          <strong>Priority:</strong> <span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span><br>
+          <strong>Due Date:</strong> {{ task.due_date|date:"M d, Y · H:i" }}<br>
+          {% if task.description %}<strong>Description:</strong> {{ task.description }}{% endif %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
 
   <form method="post">
     {% csrf_token %}
@@ -37,6 +39,14 @@
     {% endif %}
 
     {% if not is_staff_edit %}
+      {% if not event %}
+        <div class="form-row">
+          <label class="form-label">Target Event *</label>
+          {{ form.event }}
+          {% if form.event.errors %}<span class="form-error">{{ form.event.errors|join:", " }}</span>{% endif %}
+        </div>
+      {% endif %}
+
       <div class="form-row">
         <label class="form-label">Task Title *</label>
         {{ form.title }}
@@ -53,7 +63,7 @@
         <div class="form-row">
           <label class="form-label">Assign To Staff Member</label>
           {{ form.assigned_to }}
-          <span class="form-help">Only staff assigned to this event appear here.</span>
+          <span class="form-help" style="font-size:11.5px; color:var(--muted);">Select any active staff member. Assigning a task automatically enrolls them into the event crew and sends an in-app alert.</span>
           {% if form.assigned_to.errors %}<span class="form-error">{{ form.assigned_to.errors|join:", " }}</span>{% endif %}
         </div>
 
@@ -93,8 +103,9 @@
 
     <div style="display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);">
       <button type="submit" class="btn btn-primary">Save Task</button>
-      <a href="{% url 'task_list' %}" class="btn">Cancel</a>
+      <a href="{% if event %}{% url 'event_detail' event.id %}{% else %}{% url 'task_list' %}{% endif %}" class="btn">Cancel</a>
     </div>
   </form>
 </div>
 {% endblock %}
+
