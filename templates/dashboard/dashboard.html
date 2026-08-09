@@ -2,19 +2,20 @@
 {% load static %}
 
 {% block title %}Dashboard — EventOps{% endblock %}
+
 {% block heading %}
-  {% if role == 'ADMIN' %}Organization Overview
-  {% elif role == 'EVENT_MANAGER' %}Event Manager Dashboard
-  {% elif role == 'STAFF' %}My Operational Workspace
-  {% elif role == 'FINANCE' %}Finance & Budget Dashboard
+  {% if role == 'ADMIN' %}Organization Operations
+  {% elif role == 'EVENT_MANAGER' %}Event Manager Hub
+  {% elif role == 'STAFF' %}Operational Workspace
+  {% elif role == 'FINANCE' %}Financial Governance Hub
   {% else %}Operations Dashboard{% endif %}
 {% endblock %}
 
 {% block subheading %}
-  {% if role == 'ADMIN' %}Real-time operational KPIs, pipeline health, and organization metrics.
-  {% elif role == 'EVENT_MANAGER' %}Welcome back, {{ manager_name }}. Here is the live status of your events.
-  {% elif role == 'STAFF' %}Welcome, {{ staff_name }}. Track your assigned tasks, event shifts, and check-ins.
-  {% elif role == 'FINANCE' %}Track organization budgets, review expense requests, and monitor utilization.
+  {% if role == 'ADMIN' %}Executive KPI radar, event approvals, and operational health.
+  {% elif role == 'EVENT_MANAGER' %}Manage your assigned events, track milestones, and review team tasks.
+  {% elif role == 'STAFF' %}Track assigned shift times, active checklists, and attendance check-ins.
+  {% elif role == 'FINANCE' %}Monitor organization budgets, approve line-item expenses, and review burn rates.
   {% endif %}
 {% endblock %}
 
@@ -31,23 +32,23 @@
 <!-- FILTER BAR -->
 <form method="get" class="filter-bar">
   <div class="filter-group">
-    <span style="font-weight: 600; font-size: 13px; color: var(--muted);">Filter View:</span>
-    <select name="date_range" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+    <span style="font-weight: 700; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">Timeline:</span>
+    <select name="date_range" class="form-control" style="width: auto; padding: 6px 12px; font-size: 13px;" onchange="this.form.submit()">
       <option value="30d" {% if filters.date_range == '30d' %}selected{% endif %}>Next 30 Days</option>
       <option value="90d" {% if filters.date_range == '90d' %}selected{% endif %}>Next 90 Days</option>
-      <option value="year" {% if filters.date_range == 'year' %}selected{% endif %}>This Year</option>
+      <option value="year" {% if filters.date_range == 'year' %}selected{% endif %}>This Fiscal Year</option>
       <option value="all" {% if filters.date_range == 'all' %}selected{% endif %}>All Time</option>
     </select>
 
     {% if role != 'STAFF' %}
-      <select name="event_type" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
-        <option value="">All Event Types</option>
+      <select name="event_type" class="form-control" style="width: auto; padding: 6px 12px; font-size: 13px;" onchange="this.form.submit()">
+        <option value="">All Categories</option>
         {% for val, label in event_types %}
           <option value="{{ val }}" {% if filters.event_type == val %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
 
-      <select name="venue" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+      <select name="venue" class="form-control" style="width: auto; padding: 6px 12px; font-size: 13px;" onchange="this.form.submit()">
         <option value="">All Venues</option>
         {% for v in venues %}
           <option value="{{ v.id }}" {% if filters.venue == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
@@ -56,7 +57,7 @@
     {% endif %}
   </div>
   {% if filters.date_range or filters.event_type or filters.venue %}
-    <a href="{% url 'dashboard' %}" class="btn btn-sm" style="color: var(--muted);">Reset Filters</a>
+    <a href="{% url 'dashboard' %}" class="btn btn-sm btn-secondary" style="font-size: 12px;">Reset Filters</a>
   {% endif %}
 </form>
 
@@ -65,238 +66,250 @@
   <div style="margin-bottom: 20px;">
     {% for alert in alerts %}
       <div class="alert alert-{{ alert.type }}">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <strong>{{ alert.title }}:</strong>
-          <span>{{ alert.text }}</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 16px;">
+            {% if alert.type == 'danger' %}⚠️{% elif alert.type == 'warn' %}⚡{% else %}ℹ️{% endif %}
+          </span>
+          <div>
+            <strong>{{ alert.title }}:</strong>
+            <span>{{ alert.text }}</span>
+          </div>
         </div>
         {% if alert.url %}
-          <a href="{{ alert.url }}" class="btn btn-sm" style="background: rgba(255,255,255,0.8); font-weight:700;">Take Action &rarr;</a>
+          <a href="{{ alert.url }}" class="btn btn-sm btn-secondary" style="font-size: 12px; font-weight: 700;">Take Action &rarr;</a>
         {% endif %}
       </div>
     {% endfor %}
   </div>
 {% endif %}
 
-<!-- AI EXECUTIVE BRIEFING & HEALTH INTELLIGENCE -->
-{% if role == 'ADMIN' or role == 'EVENT_MANAGER' %}
-<div class="card" style="background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.06)); border: 1px solid rgba(99,102,241,0.25); margin-bottom: 22px; border-radius: 14px; position: relative; overflow: hidden;">
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 4px 0 12px 0;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; box-shadow: 0 4px 12px rgba(99,102,241,0.35);">
-        🤖
-      </div>
-      <div>
-        <div style="font-size: 16px; font-weight: 800; color: var(--ink); display: flex; align-items: center; gap: 8px;">
-          AI Portfolio Copilot & Health Intelligence
-          <span style="font-size: 10.5px; font-weight: 700; background: rgba(99,102,241,0.15); color: #6366f1; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;">Real-Time</span>
-        </div>
-        <div style="font-size: 13px; color: var(--muted);">Automated multi-factor risk scoring and executive briefing across active operations.</div>
-      </div>
-    </div>
-    <button id="fetchBriefingBtn" class="btn btn-sm btn-primary" onclick="loadAiBriefing()" style="display: flex; align-items: center; gap: 6px;">
-      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      Generate AI Briefing
-    </button>
-  </div>
-
-  <div id="aiBriefingContent" style="margin-top: 10px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 13.5px; line-height: 1.65; color: var(--ink);">
-    <div style="display: flex; align-items: center; gap: 10px; color: var(--muted);">
-      <span>💡 Click <strong>"Generate AI Briefing"</strong> to synthesize today's portfolio status, risk trajectory, and critical action items across all events.</span>
-    </div>
-  </div>
-
-  <div id="aiHealthScoresGrid" style="display: none; margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;"></div>
-</div>
-
-<script>
-function loadAiBriefing() {
-  const btn = document.getElementById('fetchBriefingBtn');
-  const box = document.getElementById('aiBriefingContent');
-  const grid = document.getElementById('aiHealthScoresGrid');
-  
-  btn.disabled = true;
-  btn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> Analyzing Operations...';
-  box.innerHTML = '<div style="color:var(--muted);font-style:italic;">Scanning budget trajectories, task completion velocities, staff assignments, and vendor confirmations...</div>';
-
-  fetch('{% url "ai_briefing" %}')
-    .then(r => r.json())
-    .then(data => {
-      btn.disabled = false;
-      btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh AI Briefing';
-      
-      // Render briefing
-      box.innerHTML = `<div style="font-weight:700;color:var(--accent);margin-bottom:6px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Executive Operations Briefing:</div>
-                       <div style="white-space:pre-line;">${data.briefing}</div>`;
-      
-      // Render scores grid
-      if (data.scores && data.scores.length > 0) {
-        grid.style.display = 'grid';
-        grid.innerHTML = data.scores.map(s => `
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <a href="/events/${s.id}/" style="font-weight:700;font-size:13.5px;color:var(--ink);text-decoration:none;">${s.name}</a>
-              <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:4px;background:rgba(99,102,241,0.15);color:var(--accent);">Grade ${s.grade} · ${s.score}%</span>
-            </div>
-            <div style="height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden;margin-bottom:8px;">
-              <div style="height:100%;width:${s.score}%;background:${s.score >= 75 ? '#22c55e' : s.score >= 50 ? '#f59e0b' : '#ef4444'};"></div>
-            </div>
-            <div style="font-size:12px;color:var(--muted);">${s.summary}</div>
-            ${s.recommendations && s.recommendations.length > 0 ? `
-              <div style="margin-top:6px;font-size:11.5px;color:#d97706;background:rgba(245,158,11,0.08);padding:4px 8px;border-radius:5px;">
-                💡 <strong>Rec:</strong> ${s.recommendations[0]}
-              </div>` : ''}
-          </div>
-        `).join('');
-      }
-    })
-    .catch(err => {
-      btn.disabled = false;
-      btn.innerHTML = 'Retry AI Briefing';
-      box.innerHTML = `<div style="color:var(--danger);">Failed to load briefing. Please try again.</div>`;
-    });
-}
-</script>
-{% endif %}
-
 <!-- ============================================================= -->
-<!-- 1. ADMIN DASHBOARD VIEW -->
+<!-- 1. ADMIN DASHBOARD VIEW (Senior UI/UX Architecture) -->
 <!-- ============================================================= -->
 {% if role == 'ADMIN' %}
-  <!-- STAT CARDS: EVENTS -->
-  <div class="grid cols-4" style="margin-bottom: 18px;">
+
+  <!-- AT-A-GLANCE EXECUTIVE HUD (Top 4 Vital Metrics) -->
+  <div class="grid cols-4" style="margin-bottom: 24px;">
     <div class="stat-card">
       <div class="stat-icon-wrap indigo">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
       </div>
       <div class="stat-body">
         <div class="stat-label">Total Events</div>
         <div class="stat-val">{{ summary.total_events }}</div>
-        <div class="stat-meta">{{ summary.upcoming_events }} upcoming</div>
+        <div class="stat-meta">{{ summary.upcoming_events }} scheduled upcoming</div>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon-wrap amber">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div class="stat-body">
-        <div class="stat-label">In Progress</div>
-        <div class="stat-val">{{ summary.in_progress_events }}</div>
-        <div class="stat-meta">{{ summary.pending_event_approvals }} pending review</div>
+        <div class="stat-label">Pending Reviews</div>
+        <div class="stat-val" style="color: {% if summary.pending_event_approvals > 0 %}#d97706{% else %}var(--ink){% endif %};">
+          {{ summary.pending_event_approvals }}
+        </div>
+        <div class="stat-meta">Events awaiting sign-off</div>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon-wrap emerald">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div class="stat-body">
-        <div class="stat-label">Completed</div>
-        <div class="stat-val">{{ summary.completed_events }}</div>
-        <div class="stat-meta">{{ summary.active_staff }} staff active</div>
+        <div class="stat-label">Budget Burn</div>
+        <div class="stat-val">{{ summary.utilization_pct }}%</div>
+        <div class="stat-meta">₹{{ summary.approved_expenses|floatformat:0 }} of ₹{{ summary.total_budget|floatformat:0 }}</div>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon-wrap rose">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <div class="stat-icon-wrap {% if summary.overdue_tasks > 0 %}rose{% else %}sky{% endif %}">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
       </div>
       <div class="stat-body">
-        <div class="stat-label">Overdue Tasks</div>
-        <div class="stat-val">{{ summary.overdue_tasks }}</div>
-        <div class="stat-meta">{{ summary.critical_tasks }} critical open</div>
+        <div class="stat-label">Ops Execution</div>
+        <div class="stat-val">{{ summary.overdue_tasks }} Overdue</div>
+        <div class="stat-meta">{{ summary.critical_tasks }} critical blocker(s)</div>
       </div>
     </div>
   </div>
 
-  <!-- STAT CARDS: FINANCIAL HEALTH -->
-  <div class="card" style="margin-bottom: 22px;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Financial Summary & Budget Health</div>
-        <div class="card-subtitle">Organization-wide total budgets vs approved expenses</div>
-      </div>
-      <span class="badge {% if summary.utilization_pct >= 90 %}badge-blocked{% elif summary.utilization_pct >= 80 %}badge-warn{% else %}badge-ready{% endif %}">
-        {{ summary.utilization_pct }}% Utilized
-      </span>
-    </div>
-    <div class="grid cols-4" style="gap: 12px; margin-bottom: 12px;">
-      <div>
-        <div class="stat-label">Total Allocated Budget</div>
-        <div style="font-size: 20px; font-weight: 800;">₹{{ summary.total_budget|floatformat:0 }}</div>
-      </div>
-      <div>
-        <div class="stat-label">Approved Expenses</div>
-        <div style="font-size: 20px; font-weight: 800; color: var(--primary);">₹{{ summary.approved_expenses|floatformat:0 }}</div>
-      </div>
-      <div>
-        <div class="stat-label">Remaining Balance</div>
-        <div style="font-size: 20px; font-weight: 800; color: var(--success);">₹{{ summary.remaining_budget|floatformat:0 }}</div>
-      </div>
-      <div>
-        <div class="stat-label">Pending Expenses</div>
-        <div style="font-size: 20px; font-weight: 800; color: var(--warn);">{{ summary.pending_expense_approvals }} Requests</div>
-      </div>
-    </div>
-    <div class="progress-bar">
-      <div class="progress-fill {% if summary.utilization_pct >= 90 %}danger{% elif summary.utilization_pct >= 80 %}warn{% else %}success{% endif %}" style="width: {{ summary.utilization_pct }}%;"></div>
+  <!-- PROGRESSIVE DISCLOSURE: SEGMENTED VIEW TABS -->
+  <div class="ux-tabs-container">
+    <div class="ux-tabs-nav">
+      <button type="button" class="ux-tab-btn active" onclick="switchTab('admin-tab-overview', this)">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        Overview & Copilot
+      </button>
+      <button type="button" class="ux-tab-btn" onclick="switchTab('admin-tab-pipeline', this)">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Event Pipeline & Reviews
+        {% if summary.pending_event_approvals > 0 %}
+          <span style="background: #f59e0b; color: #fff; font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 999px;">{{ summary.pending_event_approvals }}</span>
+        {% endif %}
+      </button>
+      <button type="button" class="ux-tab-btn" onclick="switchTab('admin-tab-finance', this)">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Finance & Budget
+      </button>
+      <button type="button" class="ux-tab-btn" onclick="switchTab('admin-tab-operations', this)">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Operations & Tasks
+      </button>
     </div>
   </div>
 
-  <!-- CHARTS ROW -->
-  <div class="grid cols-2" style="margin-bottom: 22px;">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Event Pipeline by Status</div>
-        <div class="card-subtitle">Live status distribution across all events</div>
+  <!-- TAB 1: OVERVIEW & AI COPILOT -->
+  <div id="admin-tab-overview" class="ux-tab-panel active">
+    <!-- AI COPILOT CARD -->
+    <div class="card" style="background: linear-gradient(135deg, rgba(99,102,241,0.05), rgba(139,92,246,0.05)); border: 1px solid rgba(99,102,241,0.2); margin-bottom: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; box-shadow: 0 4px 10px rgba(99,102,241,0.3);">
+            🤖
+          </div>
+          <div>
+            <div style="font-size: 15px; font-weight: 800; color: var(--ink); display: flex; align-items: center; gap: 8px;">
+              AI Portfolio Copilot & Risk Radar
+              <span style="font-size: 10px; font-weight: 700; background: rgba(99,102,241,0.12); color: var(--primary); padding: 2px 7px; border-radius: 999px; text-transform: uppercase;">Deterministic + LLM</span>
+            </div>
+            <div style="font-size: 12.5px; color: var(--muted);">Instant multi-factor health analysis & executive action synthesis.</div>
+          </div>
+        </div>
+        <button id="fetchBriefingBtn" class="btn btn-sm btn-primary" onclick="loadAiBriefing()">
+          Generate Live Briefing
+        </button>
       </div>
-      <div style="height: 240px; position: relative;">
-        <canvas id="chartAdminStatus"></canvas>
+
+      <div id="aiBriefingContent" style="padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; line-height: 1.6; color: var(--ink);">
+        <div style="color: var(--muted); font-style: italic;">
+          ✨ Click <strong>"Generate Live Briefing"</strong> to synthesize active event risks, budget burn trajectories, and overdue tasks into an executive briefing.
+        </div>
       </div>
+
+      <div id="aiHealthScoresGrid" style="display: none; margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;"></div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Monthly Event Volume</div>
-        <div class="card-subtitle">Scheduled events timeline</div>
+    <!-- UPCOMING EVENTS & AUDIT LOG ROW -->
+    <div class="grid cols-2">
+      <!-- UPCOMING EVENTS WITH HEALTH BADGES -->
+      <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div class="card-title">Upcoming Schedule</div>
+            <div class="card-subtitle">Next events requiring operational readiness</div>
+          </div>
+          <a href="{% url 'event_list' %}" class="btn btn-sm btn-secondary">View All</a>
+        </div>
+        {% if upcoming_events %}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Health Score</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ev in upcoming_events %}
+                <tr>
+                  <td>
+                    <strong><a href="{% url 'event_detail' ev.id %}">{{ ev.name }}</a></strong>
+                    <div style="font-size: 11.5px; color: var(--muted);">{{ ev.start_date|date:"M d, Y" }} · {{ ev.venue.name }}</div>
+                  </td>
+                  <td>
+                    {% if ev.health %}
+                      <span class="badge" style="background: rgba(99,102,241,0.1); color: var(--primary); font-family: var(--font-mono); font-size: 11px;">
+                        Grade {{ ev.health.grade }} · {{ ev.health.score }}%
+                      </span>
+                    {% else %}
+                      <span class="badge b-draft">Standard</span>
+                    {% endif %}
+                  </td>
+                  <td><span class="badge b-{{ ev.status|lower }}">{{ ev.get_status_display }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="empty-state">
+            <div class="empty-icon">📅</div>
+            <div>No upcoming events scheduled in this window.</div>
+          </div>
+        {% endif %}
       </div>
-      <div style="height: 240px; position: relative;">
-        <canvas id="chartAdminMonthly"></canvas>
+
+      <!-- RECENT AUDIT LOG TIMELINE -->
+      <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div class="card-title">Recent Activity Trail</div>
+            <div class="card-subtitle">Immutable compliance logs</div>
+          </div>
+          <a href="{% url 'audit_log_list' %}" class="btn btn-sm btn-secondary">Full Audit</a>
+        </div>
+        {% if recent_activity %}
+          <div style="padding: 12px 20px; display: flex; flex-direction: column; gap: 10px;">
+            {% for act in recent_activity %}
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; padding-bottom: 8px; border-bottom: 1px solid var(--line-light);">
+                <div>
+                  <strong>{{ act.user.get_full_name|default:act.user.username }}</strong>
+                  <span style="color: var(--muted);">{{ act.action|lower }}d {{ act.entity_type }}</span>
+                  <span style="font-weight: 600; color: var(--ink);">#{{ act.entity_id }}</span>
+                </div>
+                <div style="color: var(--muted-light); font-size: 11.5px; font-family: var(--font-mono);">{{ act.timestamp|timesince }} ago</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <div class="empty-icon">✓</div>
+            <div>No recent activity recorded yet.</div>
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
 
-  <div class="grid cols-2" style="margin-bottom: 22px;">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Task Completion & Execution</div>
-        <div class="card-subtitle">Breakdown by current operational task status</div>
+  <!-- TAB 2: PIPELINE & REVIEWS -->
+  <div id="admin-tab-pipeline" class="ux-tab-panel">
+    <div class="grid cols-2" style="margin-bottom: 22px;">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Event Status Distribution</div>
+            <div class="card-subtitle">Active pipeline stage balance</div>
+          </div>
+        </div>
+        <div style="height: 220px; position: relative;">
+          <canvas id="chartAdminStatus"></canvas>
+        </div>
       </div>
-      <div style="height: 240px; position: relative;">
-        <canvas id="chartAdminTasks"></canvas>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Monthly Event Volume</div>
+            <div class="card-subtitle">Scheduled events trajectory</div>
+          </div>
+        </div>
+        <div style="height: 220px; position: relative;">
+          <canvas id="chartAdminMonthly"></canvas>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Venue Utilization</div>
-        <div class="card-subtitle">Events booked per venue location</div>
-      </div>
-      <div style="height: 240px; position: relative;">
-        <canvas id="chartAdminVenues"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- TABLES ROW: PENDING APPROVALS & CRITICAL TASKS -->
-  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <!-- PENDING EVENT APPROVALS -->
     <div class="card" style="padding: 0; overflow: hidden;">
       <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
         <div>
           <div class="card-title">Pending Event Approvals</div>
-          <div class="card-subtitle">{{ pending_approvals|length }} events awaiting review</div>
+          <div class="card-subtitle">{{ pending_approvals|length }} events awaiting administrative review</div>
         </div>
-        <a href="{% url 'event_list' %}?status=SUBMITTED" class="btn btn-sm">View All &rarr;</a>
+        <a href="{% url 'event_list' %}?status=SUBMITTED" class="btn btn-sm btn-secondary">Review Queue</a>
       </div>
       {% if pending_approvals %}
         <table class="table">
@@ -305,6 +318,7 @@ function loadAiBriefing() {
               <th>Event</th>
               <th>Manager</th>
               <th>Budget</th>
+              <th>AI Health</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -313,12 +327,21 @@ function loadAiBriefing() {
               <tr>
                 <td>
                   <strong><a href="{% url 'event_detail' ev.id %}">{{ ev.name }}</a></strong>
-                  <div style="font-size: 11.5px; color: var(--muted);">{{ ev.start_date|date:"M d, Y" }}</div>
+                  <div style="font-size: 11.5px; color: var(--muted);">{{ ev.start_date|date:"M d, Y" }} · {{ ev.venue.name }}</div>
                 </td>
                 <td>{{ ev.manager.get_full_name|default:ev.manager.username }}</td>
-                <td>₹{{ ev.budget|floatformat:0 }}</td>
+                <td style="font-family: var(--font-mono); font-weight: 600;">₹{{ ev.budget|floatformat:0 }}</td>
                 <td>
-                  <a href="{% url 'event_detail' ev.id %}" class="btn btn-primary btn-sm">Review</a>
+                  {% if ev.health %}
+                    <span class="badge" style="background: rgba(99,102,241,0.1); color: var(--primary); font-family: var(--font-mono); font-size: 11px;">
+                      Grade {{ ev.health.grade }} · {{ ev.health.score }}%
+                    </span>
+                  {% else %}
+                    <span class="badge b-submitted">Submitted</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{% url 'event_detail' ev.id %}" class="btn btn-primary btn-sm">Review & Sign-Off</a>
                 </td>
               </tr>
             {% endfor %}
@@ -327,18 +350,112 @@ function loadAiBriefing() {
       {% else %}
         <div class="empty-state">
           <div class="empty-icon">✓</div>
-          <div>No pending event approvals. All caught up!</div>
+          <div>No pending event approvals. All clear!</div>
         </div>
       {% endif %}
     </div>
+  </div>
 
+  <!-- TAB 3: FINANCE & BUDGET -->
+  <div id="admin-tab-finance" class="ux-tab-panel">
+    <!-- BUDGET ALLOCATION BANNER -->
+    <div class="card" style="margin-bottom: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div>
+          <div class="card-title">Fiscal Budget Allocation & Burn</div>
+          <div class="card-subtitle">Organization-wide utilization tracker</div>
+        </div>
+        <span class="badge {% if summary.utilization_pct >= 90 %}b-rejected{% elif summary.utilization_pct >= 80 %}b-in_progress{% else %}b-approved{% endif %}" style="font-size: 12px; padding: 4px 10px;">
+          {{ summary.utilization_pct }}% Utilized
+        </span>
+      </div>
+      <div class="progress-bar" style="height: 10px; margin-bottom: 14px;">
+        <div class="progress-fill {% if summary.utilization_pct >= 90 %}danger{% elif summary.utilization_pct >= 80 %}warn{% else %}success{% endif %}" style="width: {{ summary.utilization_pct }}%;"></div>
+      </div>
+      <div class="grid cols-3" style="text-align: center;">
+        <div style="padding: 10px; background: var(--soft); border-radius: var(--r-sm);">
+          <div class="stat-label">Total Allocated</div>
+          <div style="font-size: 18px; font-weight: 800; font-family: var(--font-mono);">₹{{ summary.total_budget|floatformat:0 }}</div>
+        </div>
+        <div style="padding: 10px; background: var(--soft); border-radius: var(--r-sm);">
+          <div class="stat-label">Approved Burn</div>
+          <div style="font-size: 18px; font-weight: 800; color: var(--primary); font-family: var(--font-mono);">₹{{ summary.approved_expenses|floatformat:0 }}</div>
+        </div>
+        <div style="padding: 10px; background: var(--soft); border-radius: var(--r-sm);">
+          <div class="stat-label">Remaining Balance</div>
+          <div style="font-size: 18px; font-weight: 800; color: var(--success); font-family: var(--font-mono);">₹{{ summary.remaining_budget|floatformat:0 }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Expense Categories</div>
+            <div class="card-subtitle">Spending distribution by department</div>
+          </div>
+        </div>
+        <div style="height: 220px; position: relative;">
+          <canvas id="chartAdminExpenses"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Pending Expense Approvals</div>
+            <div class="card-subtitle">{{ summary.pending_expense_approvals }} requests pending review</div>
+          </div>
+          <a href="{% url 'expense_list' %}?status=PENDING" class="btn btn-sm btn-primary">Review Expenses</a>
+        </div>
+        <div style="padding: 16px 0;">
+          <p style="color: var(--muted); font-size: 13.5px; line-height: 1.6;">
+            Line-item expenses are reviewed against event allocations. Threshold warnings alert managers at 80% and escalate critically at 90%.
+          </p>
+          <div style="margin-top: 14px;">
+            <a href="{% url 'expense_list' %}" class="btn btn-secondary btn-sm">Open Expense Register &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: OPERATIONS & TASKS -->
+  <div id="admin-tab-operations" class="ux-tab-panel">
+    <div class="grid cols-2" style="margin-bottom: 22px;">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Task Completion Velocity</div>
+            <div class="card-subtitle">Operational checklist status breakdown</div>
+          </div>
+        </div>
+        <div style="height: 220px; position: relative;">
+          <canvas id="chartAdminTasks"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Venue Utilization</div>
+            <div class="card-subtitle">Events assigned per facility</div>
+          </div>
+        </div>
+        <div style="height: 220px; position: relative;">
+          <canvas id="chartAdminVenues"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRITICAL TASKS -->
     <div class="card" style="padding: 0; overflow: hidden;">
       <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
         <div>
           <div class="card-title">Critical Operational Tasks</div>
-          <div class="card-subtitle">Urgent items requiring attention</div>
+          <div class="card-subtitle">Items requiring immediate escalation</div>
         </div>
-        <a href="{% url 'task_list' %}?priority=CRITICAL" class="btn btn-sm">View All &rarr;</a>
+        <a href="{% url 'task_list' %}?priority=CRITICAL" class="btn btn-sm btn-secondary">All Tasks</a>
       </div>
       {% if critical_tasks %}
         <table class="table">
@@ -357,7 +474,7 @@ function loadAiBriefing() {
                   <strong>{{ task.title }}</strong>
                   <div style="font-size: 11.5px; color: var(--danger);">Due: {{ task.due_date|date:"M d, H:i" }}</div>
                 </td>
-                <td><a href="{% url 'event_detail' task.event.id %}">{{ task.event.name|truncatechars:20 }}</a></td>
+                <td><a href="{% url 'event_detail' task.event.id %}">{{ task.event.name|truncatechars:24 }}</a></td>
                 <td>{{ task.assigned_to.get_full_name|default:"Unassigned" }}</td>
                 <td><span class="badge b-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
               </tr>
@@ -367,603 +484,544 @@ function loadAiBriefing() {
       {% else %}
         <div class="empty-state">
           <div class="empty-icon">✓</div>
-          <div>No critical tasks pending resolution.</div>
+          <div>No critical tasks pending resolution. All systems operational.</div>
         </div>
       {% endif %}
     </div>
   </div>
 
-
 <!-- ============================================================= -->
 <!-- 2. EVENT MANAGER DASHBOARD VIEW -->
 <!-- ============================================================= -->
 {% elif role == 'EVENT_MANAGER' %}
-  <!-- TOP STAT CARDS -->
-  <div class="grid cols-4" style="margin-bottom: 18px;">
+
+  <div class="grid cols-4" style="margin-bottom: 24px;">
     <div class="stat-card">
       <div class="stat-icon-wrap indigo">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
       </div>
       <div class="stat-body">
         <div class="stat-label">My Events</div>
         <div class="stat-val">{{ summary.total_events }}</div>
-        <div class="stat-meta">{{ summary.upcoming_events }} upcoming</div>
+        <div class="stat-meta">{{ summary.upcoming_events }} scheduled upcoming</div>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon-wrap emerald">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div class="stat-body">
-        <div class="stat-label">Tasks Completed</div>
+        <div class="stat-label">Tasks Finished</div>
         <div class="stat-val">{{ summary.completed_tasks }}</div>
-        <div class="stat-meta">of {{ summary.total_tasks }} total tasks</div>
+        <div class="stat-meta">of {{ summary.total_tasks }} assigned checklist items</div>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon-wrap sky">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div class="stat-body">
-        <div class="stat-label">My Events Budget</div>
-        <div class="stat-val">₹{{ summary.total_budget|floatformat:0 }}</div>
-        <div class="stat-meta">{{ summary.utilization_pct }}% spent</div>
+        <div class="stat-label">Budget Burn</div>
+        <div class="stat-val">{{ summary.utilization_pct }}%</div>
+        <div class="stat-meta">₹{{ summary.approved_expenses|floatformat:0 }} of ₹{{ summary.total_budget|floatformat:0 }}</div>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon-wrap rose">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <div class="stat-icon-wrap {% if summary.overdue_tasks > 0 %}rose{% else %}amber{% endif %}">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
       </div>
       <div class="stat-body">
         <div class="stat-label">Overdue Tasks</div>
         <div class="stat-val">{{ summary.overdue_tasks }}</div>
-        <div class="stat-meta">{{ summary.critical_tasks }} critical</div>
+        <div class="stat-meta">{{ summary.critical_tasks }} critical items</div>
       </div>
     </div>
   </div>
 
-  <!-- CHARTS ROW -->
   <div class="grid cols-2" style="margin-bottom: 22px;">
     <div class="card">
       <div class="card-header">
-        <div class="card-title">My Events Pipeline</div>
-        <div class="card-subtitle">Status breakdown of events you manage</div>
+        <div>
+          <div class="card-title">My Event Pipeline</div>
+          <div class="card-subtitle">Stages of managed events</div>
+        </div>
       </div>
-      <div style="height: 240px; position: relative;">
+      <div style="height: 220px; position: relative;">
         <canvas id="chartManagerStatus"></canvas>
       </div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Task Completion Rate</div>
-        <div class="card-subtitle">Task statuses across all your events</div>
+        <div>
+          <div class="card-title">Task Completion Velocity</div>
+          <div class="card-subtitle">Checklist progress across your events</div>
+        </div>
       </div>
-      <div style="height: 240px; position: relative;">
+      <div style="height: 220px; position: relative;">
         <canvas id="chartManagerTasks"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- MANAGER TABLES: UPCOMING EVENTS & URGENT TASKS -->
-  <div class="grid cols-2" style="margin-bottom: 22px;">
-    <div class="card" style="padding: 0; overflow: hidden;">
-      <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <div class="card-title">My Upcoming Events</div>
-          <div class="card-subtitle">Next events scheduled on your calendar</div>
-        </div>
-        <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">+ New Event</a>
-      </div>
-      {% if upcoming_events %}
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Event</th>
-              <th>Venue</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for ev in upcoming_events %}
-              <tr>
-                <td>
-                  <strong><a href="{% url 'event_detail' ev.id %}">{{ ev.name }}</a></strong>
-                  <div style="font-size: 11.5px; color: var(--muted);">{{ ev.start_date|date:"M d, Y" }}</div>
-                </td>
-                <td>{{ ev.venue.name|default:"TBD" }}</td>
-                <td><span class="badge b-{{ ev.status|lower }}">{{ ev.get_status_display }}</span></td>
-                <td><a href="{% url 'event_detail' ev.id %}" class="btn btn-sm">Manage</a></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="empty-state">
-          <div class="empty-icon">📅</div>
-          <div>No upcoming events. Click "+ New Event" to create your next event!</div>
-        </div>
-      {% endif %}
-    </div>
-
-    <div class="card" style="padding: 0; overflow: hidden;">
-      <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <div class="card-title">Urgent Tasks & Deadlines</div>
-          <div class="card-subtitle">Overdue and critical tasks in your events</div>
-        </div>
-        <a href="{% url 'task_list' %}" class="btn btn-sm">All Tasks &rarr;</a>
-      </div>
-      {% if overdue_tasks or critical_tasks %}
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Task</th>
-              <th>Assignee</th>
-              <th>Priority</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for task in overdue_tasks %}
-              <tr>
-                <td>
-                  <strong>{{ task.title }}</strong>
-                  <div style="font-size: 11.5px; color: var(--danger);">Due: {{ task.due_date|date:"M d" }}</div>
-                </td>
-                <td>{{ task.assigned_to.get_full_name|default:"Unassigned" }}</td>
-                <td><span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
-                <td><span class="badge b-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="empty-state">
-          <div class="empty-icon">✓</div>
-          <div>No urgent task blockers on your events.</div>
-        </div>
-      {% endif %}
-    </div>
-  </div>
-
-
-<!-- ============================================================= -->
-<!-- 3. STAFF DASHBOARD VIEW (Action Workspace) -->
-<!-- ============================================================= -->
-{% elif role == 'STAFF' %}
-  <!-- TOP STAT CARDS -->
-  <div class="grid cols-4" style="margin-bottom: 18px;">
-    <div class="stat-card">
-      <div class="stat-icon-wrap indigo">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-      </div>
-      <div class="stat-body">
-        <div class="stat-label">Assigned Events</div>
-        <div class="stat-val">{{ summary.assigned_events }}</div>
-        <div class="stat-meta">Active assignments</div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon-wrap amber">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-      </div>
-      <div class="stat-body">
-        <div class="stat-label">Pending Tasks</div>
-        <div class="stat-val">{{ summary.pending_tasks }}</div>
-        <div class="stat-meta">{{ summary.critical_tasks }} critical</div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon-wrap emerald">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      </div>
-      <div class="stat-body">
-        <div class="stat-label">Completed Tasks</div>
-        <div class="stat-val">{{ summary.completed_tasks }}</div>
-        <div class="stat-meta">of {{ summary.total_tasks }} assigned</div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon-wrap rose">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-      </div>
-      <div class="stat-body">
-        <div class="stat-label">Overdue Tasks</div>
-        <div class="stat-val">{{ summary.overdue_tasks }}</div>
-        <div class="stat-meta">Action needed</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- STAFF ACTION CARDS: MY EVENT CHECK-INS -->
-  <div class="card" style="margin-bottom: 22px;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">My Event Assignments & On-Site Check-in</div>
-        <div class="card-subtitle">Check-in / Check-out directly for scheduled event shifts</div>
-      </div>
-    </div>
-    {% if my_assignments %}
-      <div class="grid cols-3">
-        {% for a in my_assignments %}
-          <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 16px;">
-            <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">{{ a.event.name }}</div>
-            <div style="font-size: 12.5px; color: var(--muted); margin-bottom: 8px;">Role: <strong>{{ a.role }}</strong></div>
-            <div style="font-size: 12px; color: var(--ink-secondary); margin-bottom: 12px;">
-              📍 {{ a.event.venue.name|default:"Venue TBD" }}<br>
-              🕒 {{ a.event.start_date|date:"M d, H:i" }} – {{ a.event.end_date|date:"M d, H:i" }}
-            </div>
-            
-            <!-- Check in / out action -->
-            {% with att=active_attendance|dictsort:a.event.id %}
-              <div style="display: flex; gap: 8px;">
-                <form action="{% url 'attendance_checkin' a.event.id %}" method="post" style="margin: 0; flex:1;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Check In</button>
-                </form>
-                <form action="{% url 'attendance_checkout' a.event.id %}" method="post" style="margin: 0; flex:1;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-sm" style="width: 100%;">Check Out</button>
-                </form>
-              </div>
-            {% endwith %}
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="empty-state">
-        <div class="empty-icon">📋</div>
-        <div>You currently have no active event staff assignments.</div>
-      </div>
-    {% endif %}
-  </div>
-
-  <!-- STAFF ACTION TABLE: MY TODAY'S TASKS -->
-  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
+  <!-- UPCOMING EVENTS TABLE -->
+  <div class="card" style="padding: 0; overflow: hidden;">
     <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
       <div>
-        <div class="card-title">My Assigned Operational Tasks</div>
-        <div class="card-subtitle">Click "Update" to change status or record notes</div>
+        <div class="card-title">My Managed Events</div>
+        <div class="card-subtitle">Upcoming events and health ratings</div>
       </div>
-      <a href="{% url 'task_list' %}" class="btn btn-sm">View All My Tasks &rarr;</a>
+      <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">+ New Event</a>
     </div>
-    {% if today_tasks %}
+    {% if upcoming_events %}
       <table class="table">
         <thead>
           <tr>
-            <th>Task Title</th>
             <th>Event</th>
-            <th>Priority</th>
-            <th>Due Date</th>
-            <th>Current Status</th>
-            <th>Quick Action</th>
+            <th>Venue</th>
+            <th>Budget</th>
+            <th>AI Health</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          {% for task in today_tasks %}
+          {% for ev in upcoming_events %}
             <tr>
               <td>
-                <strong>{{ task.title }}</strong>
-                {% if task.description %}<div style="font-size: 12px; color: var(--muted);">{{ task.description|truncatechars:45 }}</div>{% endif %}
+                <strong><a href="{% url 'event_detail' ev.id %}">{{ ev.name }}</a></strong>
+                <div style="font-size: 11.5px; color: var(--muted);">{{ ev.start_date|date:"M d, Y" }}</div>
               </td>
-              <td><a href="{% url 'event_detail' task.event.id %}">{{ task.event.name }}</a></td>
-              <td><span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+              <td>{{ ev.venue.name }}</td>
+              <td style="font-family: var(--font-mono);">₹{{ ev.budget|floatformat:0 }}</td>
               <td>
-                <span {% if task.is_overdue %}style="color: var(--danger); font-weight:bold;"{% endif %}>
-                  {{ task.due_date|date:"M d, H:i" }}
-                </span>
+                {% if ev.health %}
+                  <span class="badge" style="background: rgba(99,102,241,0.1); color: var(--primary); font-family: var(--font-mono); font-size: 11px;">
+                    Grade {{ ev.health.grade }} · {{ ev.health.score }}%
+                  </span>
+                {% else %}
+                  <span class="badge b-draft">Standard</span>
+                {% endif %}
               </td>
-              <td><span class="badge b-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
-              <td>
-                <a href="{% url 'task_edit' task.id %}" class="btn btn-primary btn-sm">Update Status &rarr;</a>
-              </td>
+              <td><span class="badge b-{{ ev.status|lower }}">{{ ev.get_status_display }}</span></td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     {% else %}
       <div class="empty-state">
-        <div class="empty-icon">✓</div>
-        <div>All assigned tasks are completed. Great job!</div>
+        <div class="empty-icon">🎯</div>
+        <div>You haven't created any events yet. Click "+ New Event" to begin.</div>
       </div>
     {% endif %}
   </div>
 
-
 <!-- ============================================================= -->
-<!-- 4. FINANCE DASHBOARD VIEW -->
+<!-- 3. FINANCE DASHBOARD VIEW -->
 <!-- ============================================================= -->
 {% elif role == 'FINANCE' %}
-  <!-- TOP STAT CARDS -->
-  <div class="grid cols-4" style="margin-bottom: 18px;">
+
+  <div class="grid cols-4" style="margin-bottom: 24px;">
     <div class="stat-card">
       <div class="stat-icon-wrap indigo">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div class="stat-body">
-        <div class="stat-label">Total Budgets</div>
+        <div class="stat-label">Total Allocated</div>
         <div class="stat-val">₹{{ summary.total_budget|floatformat:0 }}</div>
-        <div class="stat-meta">Across active events</div>
+        <div class="stat-meta">Across all approved events</div>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon-wrap emerald">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div class="stat-body">
-        <div class="stat-label">Approved Spend</div>
+        <div class="stat-label">Approved Burn</div>
         <div class="stat-val">₹{{ summary.approved_expenses|floatformat:0 }}</div>
-        <div class="stat-meta">{{ summary.utilization_pct }}% utilization</div>
+        <div class="stat-meta">{{ summary.utilization_pct }}% of allocation</div>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon-wrap amber">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div class="stat-body">
         <div class="stat-label">Pending Approval</div>
-        <div class="stat-val">₹{{ summary.pending_approvals_sum|floatformat:0 }}</div>
-        <div class="stat-meta">{{ summary.pending_approvals_count }} requests waiting</div>
+        <div class="stat-val">{{ summary.pending_count }}</div>
+        <div class="stat-meta">₹{{ summary.pending_sum|floatformat:0 }} in review</div>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon-wrap sky">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 18h12l3-18H3z"/></svg>
       </div>
       <div class="stat-body">
         <div class="stat-label">Remaining Balance</div>
         <div class="stat-val">₹{{ summary.remaining_budget|floatformat:0 }}</div>
-        <div class="stat-meta">Net available funds</div>
+        <div class="stat-meta">Available reserve</div>
       </div>
     </div>
   </div>
 
-  <!-- CHARTS ROW -->
   <div class="grid cols-2" style="margin-bottom: 22px;">
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Approved Spend by Category</div>
-        <div class="card-subtitle">Distribution of approved expenditure</div>
+        <div>
+          <div class="card-title">Spending by Category</div>
+          <div class="card-subtitle">Expense classification breakdown</div>
+        </div>
       </div>
-      <div style="height: 240px; position: relative;">
+      <div style="height: 220px; position: relative;">
         <canvas id="chartFinanceCategories"></canvas>
       </div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Monthly Expenditure Trend</div>
-        <div class="card-subtitle">Approved expense volume over time</div>
+        <div>
+          <div class="card-title">Monthly Expense Volume</div>
+          <div class="card-subtitle">Payment trends over time</div>
+        </div>
       </div>
-      <div style="height: 240px; position: relative;">
+      <div style="height: 220px; position: relative;">
         <canvas id="chartFinanceMonthly"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- PENDING APPROVALS QUEUE -->
-  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
-    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <div class="card-title">Expense Approval Queue</div>
-        <div class="card-subtitle">{{ pending_approvals_queue|length }} operational expense requests awaiting decision</div>
-      </div>
-      <a href="{% url 'expense_list' %}?status=PENDING" class="btn btn-sm">Full Queue &rarr;</a>
-    </div>
-    {% if pending_approvals_queue %}
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Expense Item</th>
-            <th>Event</th>
-            <th>Category</th>
-            <th>Amount</th>
-            <th>Submitted By</th>
-            <th>Decision Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for exp in pending_approvals_queue %}
-            <tr>
-              <td>
-                <strong>{{ exp.description }}</strong>
-                <div style="font-size: 11.5px; color: var(--muted);">{{ exp.created_at|date:"M d, Y H:i" }}</div>
-              </td>
-              <td><a href="{% url 'event_detail' exp.event.id %}">{{ exp.event.name }}</a></td>
-              <td><span class="badge b-medium">{{ exp.get_category_display }}</span></td>
-              <td><strong style="font-size: 15px;">₹{{ exp.amount|floatformat:2 }}</strong></td>
-              <td>{{ exp.created_by.get_full_name|default:exp.created_by.username }}</td>
-              <td>
-                <div style="display: flex; gap: 6px;">
-                  <form action="{% url 'expense_approve' exp.id %}" method="post" style="margin:0;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
-                  </form>
-                  <button type="button" class="btn btn-danger btn-sm" onclick="openRejectModal('{{ exp.id }}', '{{ exp.description|escapejs }}')">Reject</button>
-                </div>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <div class="empty-state">
-        <div class="empty-icon">✓</div>
-        <div>No pending expense approvals. All requests processed!</div>
-      </div>
-    {% endif %}
-  </div>
+<!-- ============================================================= -->
+<!-- 4. STAFF DASHBOARD VIEW -->
+<!-- ============================================================= -->
+{% elif role == 'STAFF' %}
 
-  <!-- REJECTION REASON MODAL -->
-  <div id="rejectModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
-    <div style="background:#fff; border-radius:var(--r-lg); width:460px; max-width:90vw; padding:24px; box-shadow:var(--shadow-lg);">
-      <h3 style="margin-bottom:8px;">Reject Expense Request</h3>
-      <p style="font-size:13px; color:var(--muted); margin-bottom:14px;" id="rejectModalDesc"></p>
-      <form id="rejectModalForm" method="post">
-        {% csrf_token %}
-        <div class="form-row">
-          <label class="form-label">Rejection Reason (Required):</label>
-          <textarea name="reason" class="form-control" rows="3" required placeholder="State why this expense request cannot be approved..."></textarea>
-        </div>
-        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-          <button type="button" class="btn btn-sm" onclick="closeRejectModal()">Cancel</button>
-          <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
-        </div>
-      </form>
+  <div class="grid cols-3" style="margin-bottom: 24px;">
+    <div class="stat-card">
+      <div class="stat-icon-wrap indigo">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">My Assigned Tasks</div>
+        <div class="stat-val">{{ summary.my_total_tasks }}</div>
+        <div class="stat-meta">{{ summary.my_completed_tasks }} finished</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap {% if summary.my_overdue_tasks > 0 %}rose{% else %}emerald{% endif %}">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Overdue Tasks</div>
+        <div class="stat-val">{{ summary.my_overdue_tasks }}</div>
+        <div class="stat-meta">Past due date items</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap sky">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Upcoming Shifts</div>
+        <div class="stat-val">{{ summary.upcoming_shifts_count }}</div>
+        <div class="stat-meta">Event assignments scheduled</div>
+      </div>
     </div>
   </div>
 
-  <script>
-    function openRejectModal(id, desc) {
-      document.getElementById('rejectModalDesc').innerText = 'Expense: ' + desc;
-      document.getElementById('rejectModalForm').action = '/expenses/' + id + '/reject/';
-      document.getElementById('rejectModal').style.display = 'flex';
-    }
-    function closeRejectModal() {
-      document.getElementById('rejectModal').style.display = 'none';
-    }
-  </script>
 {% endif %}
 
 {% endblock %}
 
 {% block extra_scripts %}
-<script id="charts-data" type="application/json">
-  {{ charts_json|default:"{}"|safe }}
-</script>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    let chartsData = {};
-    const chartsDataEl = document.getElementById('charts-data');
-    if (chartsDataEl && chartsDataEl.textContent.trim()) {
-      try {
-        chartsData = JSON.parse(chartsDataEl.textContent);
-      } catch (e) {
-        console.error('Error parsing charts data:', e);
-      }
-    }
+// =============================================================
+// TAB CONTROLLER
+// =============================================================
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.ux-tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ux-tab-btn').forEach(b => b.classList.remove('active'));
+  
+  const target = document.getElementById(tabId);
+  if (target) target.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
 
-    // Helper options
-    const doughnutOpts = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'right', labels: { boxWidth: 12, font: { family: 'Inter', size: 12 } } }
+// =============================================================
+// AI BRIEFING & HEALTH LOADER
+// =============================================================
+function loadAiBriefing() {
+  const btn = document.getElementById('fetchBriefingBtn');
+  const box = document.getElementById('aiBriefingContent');
+  const grid = document.getElementById('aiHealthScoresGrid');
+  if (!btn || !box) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Synthesizing...';
+  box.innerHTML = '<div style="color:var(--muted); font-style:italic;">Scanning budget burn rates, task velocities, and vendor statuses across all active events...</div>';
+
+  fetch('{% url "ai_briefing" %}')
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.innerHTML = 'Refresh Briefing';
+      box.innerHTML = `<div style="font-weight:700; color:var(--primary); margin-bottom:6px; font-size:11px; text-transform:uppercase; letter-spacing:0.06em;">Executive Portfolio Briefing:</div>
+                       <div style="white-space:pre-line; color:var(--ink); line-height:1.65;">${data.briefing}</div>`;
+
+      if (data.scores && data.scores.length > 0 && grid) {
+        grid.style.display = 'grid';
+        grid.innerHTML = data.scores.map(s => `
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:var(--r-sm); padding:12px 14px; box-shadow:var(--shadow-xs);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <a href="/events/${s.id}/" style="font-weight:700; font-size:13px; color:var(--ink);">${s.name}</a>
+              <span class="badge" style="background:rgba(99,102,241,0.12); color:var(--primary); font-family:var(--font-mono); font-size:10.5px;">Grade ${s.grade} · ${s.score}%</span>
+            </div>
+            <div class="progress-bar" style="height:5px; margin-bottom:8px;">
+              <div class="progress-fill ${s.score >= 75 ? 'success' : s.score >= 50 ? 'warn' : 'danger'}" style="width:${s.score}%;"></div>
+            </div>
+            <div style="font-size:11.5px; color:var(--muted);">${s.summary}</div>
+            ${s.recommendations && s.recommendations.length > 0 ? `
+              <div style="margin-top:6px; font-size:11px; color:#b45309; background:#fffbeb; padding:4px 8px; border-radius:4px; border:1px solid #fde68a;">
+                💡 ${s.recommendations[0]}
+              </div>` : ''}
+          </div>
+        `).join('');
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerHTML = 'Retry Briefing';
+      box.innerHTML = `<div style="color:var(--danger);">Failed to load briefing. Please try again.</div>`;
+    });
+}
+
+// =============================================================
+// CHART.JS INITIALIZATION (Human Crafted Design)
+// =============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  const rawCharts = '{{ charts_json|default:"{}"|escapejs }}';
+  let chartsData = {};
+  try {
+    chartsData = JSON.parse(rawCharts);
+  } catch (e) {
+    console.error('Failed to parse chart data', e);
+  }
+
+  // Chart Global Defaults
+  Chart.defaults.font.family = "'Plus Jakarta Sans', -apple-system, sans-serif";
+  Chart.defaults.color = '#64748b';
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.boxWidth = 8;
+  Chart.defaults.plugins.legend.labels.boxHeight = 8;
+
+  // 1. Admin Status Chart
+  const ctxStatus = document.getElementById('chartAdminStatus');
+  if (ctxStatus && chartsData.status) {
+    new Chart(ctxStatus, {
+      type: 'doughnut',
+      data: {
+        labels: chartsData.status.labels,
+        datasets: [{
+          data: chartsData.status.data,
+          backgroundColor: ['#94a3b8', '#3b82f6', '#10b981', '#f59e0b', '#06b6d4', '#ef4444', '#dc2626'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+        }]
       },
-      cutout: '68%'
-    };
-
-    const barOpts = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter' } } },
-        x: { grid: { display: false }, ticks: { font: { family: 'Inter' } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+        }
       }
-    };
+    });
+  }
 
-    // 1. Admin Charts
-    if (document.getElementById('chartAdminStatus') && chartsData.status) {
-      new Chart(document.getElementById('chartAdminStatus'), {
-        type: 'doughnut',
-        data: {
-          labels: chartsData.status.labels,
-          datasets: [{ data: chartsData.status.data, backgroundColor: chartsData.status.colors }]
-        },
-        options: doughnutOpts
-      });
-    }
+  // 2. Admin Monthly Chart
+  const ctxMonthly = document.getElementById('chartAdminMonthly');
+  if (ctxMonthly && chartsData.monthly) {
+    new Chart(ctxMonthly, {
+      type: 'bar',
+      data: {
+        labels: chartsData.monthly.labels,
+        datasets: [{
+          label: 'Scheduled Events',
+          data: chartsData.monthly.data,
+          backgroundColor: '#4f46e5',
+          borderRadius: 6,
+          maxBarThickness: 32,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
 
-    if (document.getElementById('chartAdminMonthly') && chartsData.monthly) {
-      new Chart(document.getElementById('chartAdminMonthly'), {
-        type: 'bar',
-        data: {
-          labels: chartsData.monthly.labels,
-          datasets: [{ label: 'Events', data: chartsData.monthly.data, backgroundColor: '#4f46e5', borderRadius: 6 }]
-        },
-        options: barOpts
-      });
-    }
+  // 3. Admin Tasks Chart
+  const ctxTasks = document.getElementById('chartAdminTasks');
+  if (ctxTasks && chartsData.tasks) {
+    new Chart(ctxTasks, {
+      type: 'doughnut',
+      data: {
+        labels: chartsData.tasks.labels,
+        datasets: [{
+          data: chartsData.tasks.data,
+          backgroundColor: ['#10b981', '#f59e0b', '#94a3b8', '#ef4444'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+        }
+      }
+    });
+  }
 
-    if (document.getElementById('chartAdminTasks') && chartsData.tasks) {
-      new Chart(document.getElementById('chartAdminTasks'), {
-        type: 'doughnut',
-        data: {
-          labels: chartsData.tasks.labels,
-          datasets: [{ data: chartsData.tasks.data, backgroundColor: chartsData.tasks.colors }]
-        },
-        options: doughnutOpts
-      });
-    }
+  // 4. Admin Venues Chart
+  const ctxVenues = document.getElementById('chartAdminVenues');
+  if (ctxVenues && chartsData.venues) {
+    new Chart(ctxVenues, {
+      type: 'bar',
+      data: {
+        labels: chartsData.venues.labels,
+        datasets: [{
+          label: 'Booked Events',
+          data: chartsData.venues.data,
+          backgroundColor: '#0ea5e9',
+          borderRadius: 6,
+          maxBarThickness: 32,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
 
-    if (document.getElementById('chartAdminVenues') && chartsData.venues) {
-      new Chart(document.getElementById('chartAdminVenues'), {
-        type: 'bar',
-        data: {
-          labels: chartsData.venues.labels,
-          datasets: [{ label: 'Events Booked', data: chartsData.venues.data, backgroundColor: '#0284c7', borderRadius: 6 }]
-        },
-        options: { ...barOpts, indexAxis: 'y' }
-      });
-    }
+  // 5. Admin Expenses Categories Chart
+  const ctxExpenses = document.getElementById('chartAdminExpenses');
+  if (ctxExpenses && chartsData.expense_categories) {
+    new Chart(ctxExpenses, {
+      type: 'doughnut',
+      data: {
+        labels: chartsData.expense_categories.labels,
+        datasets: [{
+          data: chartsData.expense_categories.data,
+          backgroundColor: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+        }
+      }
+    });
+  }
 
-    // 2. Manager Charts
-    if (document.getElementById('chartManagerStatus') && chartsData.status) {
-      new Chart(document.getElementById('chartManagerStatus'), {
-        type: 'doughnut',
-        data: {
-          labels: chartsData.status.labels,
-          datasets: [{ data: chartsData.status.data, backgroundColor: chartsData.status.colors }]
-        },
-        options: doughnutOpts
-      });
-    }
+  // Manager & Finance Charts
+  const ctxMgrStatus = document.getElementById('chartManagerStatus');
+  if (ctxMgrStatus && chartsData.status) {
+    new Chart(ctxMgrStatus, {
+      type: 'doughnut',
+      data: {
+        labels: chartsData.status.labels,
+        datasets: [{
+          data: chartsData.status.data,
+          backgroundColor: ['#94a3b8', '#3b82f6', '#10b981', '#f59e0b', '#06b6d4', '#dc2626'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '72%' }
+    });
+  }
 
-    if (document.getElementById('chartManagerTasks') && chartsData.tasks) {
-      new Chart(document.getElementById('chartManagerTasks'), {
-        type: 'doughnut',
-        data: {
-          labels: chartsData.tasks.labels,
-          datasets: [{ data: chartsData.tasks.data, backgroundColor: chartsData.tasks.colors }]
-        },
-        options: doughnutOpts
-      });
-    }
+  const ctxMgrTasks = document.getElementById('chartManagerTasks');
+  if (ctxMgrTasks && chartsData.tasks) {
+    new Chart(ctxMgrTasks, {
+      type: 'doughnut',
+      data: {
+        labels: chartsData.tasks.labels,
+        datasets: [{
+          data: chartsData.tasks.data,
+          backgroundColor: ['#10b981', '#f59e0b', '#94a3b8', '#ef4444'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '72%' }
+    });
+  }
 
-    // 3. Finance Charts
-    if (document.getElementById('chartFinanceCategories') && chartsData.expense_categories) {
-      new Chart(document.getElementById('chartFinanceCategories'), {
-        type: 'doughnut',
-        data: {
-          labels: chartsData.expense_categories.labels,
-          datasets: [{ data: chartsData.expense_categories.data, backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#8b5cf6', '#0284c7', '#ef4444'] }]
-        },
-        options: doughnutOpts
-      });
-    }
+  const ctxFinCat = document.getElementById('chartFinanceCategories');
+  if (ctxFinCat && chartsData.categories) {
+    new Chart(ctxFinCat, {
+      type: 'doughnut',
+      data: {
+        labels: chartsData.categories.labels,
+        datasets: [{
+          data: chartsData.categories.data,
+          backgroundColor: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '72%' }
+    });
+  }
 
-    if (document.getElementById('chartFinanceMonthly') && chartsData.monthly_expenses) {
-      new Chart(document.getElementById('chartFinanceMonthly'), {
-        type: 'line',
-        data: {
-          labels: chartsData.monthly_expenses.labels,
-          datasets: [{ label: 'Approved (₹)', data: chartsData.monthly_expenses.data, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }]
-        },
-        options: barOpts
-      });
-    }
-  });
+  const ctxFinMo = document.getElementById('chartFinanceMonthly');
+  if (ctxFinMo && chartsData.monthly) {
+    new Chart(ctxFinMo, {
+      type: 'bar',
+      data: {
+        labels: chartsData.monthly.labels,
+        datasets: [{
+          label: 'Total Expenses (₹)',
+          data: chartsData.monthly.data,
+          backgroundColor: '#10b981',
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+      }
+    });
+  }
+});
 </script>
 {% endblock %}
