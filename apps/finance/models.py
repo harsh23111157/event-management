@@ -39,9 +39,15 @@ class Expense(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["category"]),
+            models.Index(fields=["created_at"]),
+        ]
         constraints = [
             models.CheckConstraint(condition=models.Q(amount__gt=0), name="expense_amount_positive"),
         ]
+
 
     def __str__(self) -> str:
         return f"{self.description} ({self.amount})"

@@ -43,10 +43,16 @@ class Event(models.Model):
 
     class Meta:
         ordering = ["-start_date"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["start_date"]),
+            models.Index(fields=["manager"]),
+        ]
         constraints = [
             models.CheckConstraint(condition=models.Q(budget__gte=0), name="event_budget_nonneg"),
             models.CheckConstraint(condition=models.Q(expected_attendees__gte=0), name="event_attendees_nonneg"),
         ]
+
 
     def __str__(self) -> str:
         return self.name

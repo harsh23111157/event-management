@@ -51,18 +51,34 @@ class EventHealthScore:
 def compute_event_health(event) -> EventHealthScore:
     """
     Compute deterministic health score for a single Event instance.
-    Expects related managers to be pre-fetched or will hit DB.
+    Cached in memory for 60 seconds per event version to eliminate N+1 bottlenecks.
     """
+    from django.core.cache import cache
+    from django.db.models import Count, Q, Sum
+
+    event_id = getattr(event, "id", None)
+    if not event_id:
+        return EventHealthScore(
+            event_id=0, event_name="", score=50, grade="C",
+            color="health-amber", badge_css="badge-warning", summary="New event"
+        )
+
+    updated_str = str(getattr(event, "updated_at", ""))
+    cache_key = f"event_health_v2_{event_id}_{updated_str}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     from apps.finance.models import ExpenseStatus
     from apps.operations.models import TaskStatus, AttendanceStatus
+    from apps.vendors.models import VendorStatus
+    from apps.events.models import EventStatus
 
     now = timezone.now()
     factors: list[dict] = []
-    deductions: int = 0
     recommendations: list[str] = []
 
     # ── 1. Workflow state (20 pts) ────────────────────────────────────────────
-    from apps.events.models import EventStatus
     status_scores = {
         EventStatus.DRAFT: 10,
         EventStatus.SUBMITTED: 14,
@@ -87,7 +103,7 @@ def compute_event_health(event) -> EventHealthScore:
     # ── 2. Budget utilisation (25 pts) ───────────────────────────────────────
     budget = event.budget or Decimal("0")
     approved_expenses = event.expenses.filter(status=ExpenseStatus.APPROVED).aggregate(
-        total=__import__("django.db.models", fromlist=["Sum"]).Sum("amount")
+        total=Sum("amount")
     )["total"] or Decimal("0")
 
     if budget > 0:
@@ -113,17 +129,18 @@ def compute_event_health(event) -> EventHealthScore:
         "label": "Budget Utilisation",
         "score": budget_score,
         "max": 25,
-        "detail": f"${approved_expenses:,.0f} / ${budget:,.0f} ({util_pct:.0f}%)",
+        "detail": f"₹{approved_expenses:,.0f} / ₹{budget:,.0f} ({util_pct:.0f}%)",
     })
 
     # ── 3. Task completion (20 pts) ──────────────────────────────────────────
-    tasks = event.tasks.all()
-    total_tasks = tasks.count()
-    done_tasks = tasks.filter(status=TaskStatus.COMPLETED).count()
-    overdue_tasks = tasks.filter(
-        status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS],
-        due_date__lt=now,
-    ).count()
+    task_agg = event.tasks.aggregate(
+        total=Count("id"),
+        done=Count("id", filter=Q(status=TaskStatus.COMPLETED)),
+        overdue=Count("id", filter=Q(status__in=[TaskStatus.TODO, TaskStatus.IN_PROGRESS], due_date__lt=now))
+    )
+    total_tasks = task_agg["total"] or 0
+    done_tasks = task_agg["done"] or 0
+    overdue_tasks = task_agg["overdue"] or 0
 
     if total_tasks == 0:
         task_score = 10
@@ -161,18 +178,20 @@ def compute_event_health(event) -> EventHealthScore:
     })
 
     # ── 5. Vendor status (10 pts) ────────────────────────────────────────────
-    from apps.vendors.models import VendorStatus
     vendors = getattr(event, "vendor_assignments", None)
     if vendors is not None:
-        vendors_qs = vendors.all()
-        total_vendors = vendors_qs.count()
-        confirmed_vendors = vendors_qs.filter(status=VendorStatus.CONFIRMED).count()
+        vendor_agg = vendors.aggregate(
+            total=Count("id"),
+            confirmed=Count("id", filter=Q(status=VendorStatus.CONFIRMED))
+        )
+        total_vendors = vendor_agg["total"] or 0
+        confirmed_vendors = vendor_agg["confirmed"] or 0
     else:
         total_vendors = 0
         confirmed_vendors = 0
 
     if total_vendors == 0:
-        vendor_score = 7   # neutral — many events don't need vendors
+        vendor_score = 7
     else:
         confirm_rate = confirmed_vendors / total_vendors
         vendor_score = min(10, int(confirm_rate * 10))
@@ -192,7 +211,6 @@ def compute_event_health(event) -> EventHealthScore:
         if event.start_date.tzinfo is None else (event.start_date - now).days
 
     if days_to_event < 0:
-        # past event
         urgency_score = 10
     elif days_to_event <= 3:
         urgency_score = 2
@@ -231,7 +249,7 @@ def compute_event_health(event) -> EventHealthScore:
         grade, color, badge_css = "F", "health-red", "badge-danger"
         summary = "Critical — event is at severe risk of failure."
 
-    return EventHealthScore(
+    result = EventHealthScore(
         event_id=event.id,
         event_name=event.name,
         score=total,
@@ -242,9 +260,12 @@ def compute_event_health(event) -> EventHealthScore:
         factors=factors,
         recommendations=recommendations,
     )
+    cache.set(cache_key, result, timeout=60)
+    return result
 
 
 def generate_portfolio_briefing(events) -> str:
+
     """
     Generate a plain-English AI briefing for all active events.
     Uses OpenRouter if configured; falls back to deterministic summary.

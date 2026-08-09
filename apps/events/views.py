@@ -64,23 +64,36 @@ class EventListView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
 
-        # Base counts for pipeline chips
+        # Base counts for pipeline chips in 1 single aggregate query
         base_qs = Event.objects.all()
         if user.is_staff_member:
             base_qs = base_qs.filter(staff_assignments__staff=user).distinct()
         elif user.is_event_manager:
             base_qs = base_qs.filter(manager=user)
 
+        from django.db.models import Count
+        counts = base_qs.aggregate(
+            all_c=Count("id"),
+            draft_c=Count("id", filter=Q(status=EventStatus.DRAFT)),
+            submitted_c=Count("id", filter=Q(status=EventStatus.SUBMITTED)),
+            approved_c=Count("id", filter=Q(status=EventStatus.APPROVED)),
+            in_prog_c=Count("id", filter=Q(status=EventStatus.IN_PROGRESS)),
+            completed_c=Count("id", filter=Q(status=EventStatus.COMPLETED)),
+            cancelled_c=Count("id", filter=Q(status=EventStatus.CANCELLED)),
+            rejected_c=Count("id", filter=Q(status=EventStatus.REJECTED)),
+        )
+
         ctx["status_counts"] = {
-            "all": base_qs.count(),
-            "DRAFT": base_qs.filter(status=EventStatus.DRAFT).count(),
-            "SUBMITTED": base_qs.filter(status=EventStatus.SUBMITTED).count(),
-            "APPROVED": base_qs.filter(status=EventStatus.APPROVED).count(),
-            "IN_PROGRESS": base_qs.filter(status=EventStatus.IN_PROGRESS).count(),
-            "COMPLETED": base_qs.filter(status=EventStatus.COMPLETED).count(),
-            "CANCELLED": base_qs.filter(status=EventStatus.CANCELLED).count(),
-            "REJECTED": base_qs.filter(status=EventStatus.REJECTED).count(),
+            "all": counts["all_c"] or 0,
+            "DRAFT": counts["draft_c"] or 0,
+            "SUBMITTED": counts["submitted_c"] or 0,
+            "APPROVED": counts["approved_c"] or 0,
+            "IN_PROGRESS": counts["in_prog_c"] or 0,
+            "COMPLETED": counts["completed_c"] or 0,
+            "CANCELLED": counts["cancelled_c"] or 0,
+            "REJECTED": counts["rejected_c"] or 0,
         }
+
         ctx["status_choices"] = EventStatus.choices
         ctx["type_choices"] = EventType.choices
         ctx["current_status"] = self.request.GET.get("status", "")

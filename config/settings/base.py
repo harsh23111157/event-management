@@ -93,6 +93,19 @@ AUTH_USER_MODEL = "accounts.User"
 DATABASES = {
     "default": env.db_url("DATABASE_URL")
 }
+DATABASES["default"]["CONN_MAX_AGE"] = 600
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "eventops_cache",
+        "TIMEOUT": 300,
+        "OPTIONS": {
+            "MAX_ENTRIES": 2000,
+        },
+    }
+}
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

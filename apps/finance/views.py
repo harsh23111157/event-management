@@ -66,9 +66,22 @@ class ExpenseListView(LoginRequiredMixin, ListView):
         elif user.is_event_manager:
             base_qs = base_qs.filter(event__manager=user)
 
-        approved_total = base_qs.filter(status=ExpenseStatus.APPROVED).aggregate(s=Sum("amount"))["s"] or Decimal(0)
-        pending_total = base_qs.filter(status=ExpenseStatus.PENDING).aggregate(s=Sum("amount"))["s"] or Decimal(0)
-        rejected_total = base_qs.filter(status=ExpenseStatus.REJECTED).aggregate(s=Sum("amount"))["s"] or Decimal(0)
+        from django.db.models import Count, DecimalField
+        from django.db.models.functions import Coalesce
+
+        exp_stats = base_qs.aggregate(
+            approved_total=Coalesce(Sum("amount", filter=Q(status=ExpenseStatus.APPROVED)), Decimal(0), output_field=DecimalField()),
+            pending_total=Coalesce(Sum("amount", filter=Q(status=ExpenseStatus.PENDING)), Decimal(0), output_field=DecimalField()),
+            rejected_total=Coalesce(Sum("amount", filter=Q(status=ExpenseStatus.REJECTED)), Decimal(0), output_field=DecimalField()),
+            all_c=Count("id"),
+            pending_c=Count("id", filter=Q(status=ExpenseStatus.PENDING)),
+            approved_c=Count("id", filter=Q(status=ExpenseStatus.APPROVED)),
+            rejected_c=Count("id", filter=Q(status=ExpenseStatus.REJECTED)),
+        )
+
+        approved_total = exp_stats["approved_total"]
+        pending_total = exp_stats["pending_total"]
+        rejected_total = exp_stats["rejected_total"]
 
         events_qs = Event.objects.exclude(status="CANCELLED")
         if user.is_event_manager:
@@ -83,11 +96,12 @@ class ExpenseListView(LoginRequiredMixin, ListView):
         ctx["utilization"] = round(float(approved_total) / float(total_budget) * 100, 1) if total_budget > 0 else 0.0
 
         ctx["status_counts"] = {
-            "all": base_qs.count(),
-            "PENDING": base_qs.filter(status=ExpenseStatus.PENDING).count(),
-            "APPROVED": base_qs.filter(status=ExpenseStatus.APPROVED).count(),
-            "REJECTED": base_qs.filter(status=ExpenseStatus.REJECTED).count(),
+            "all": exp_stats["all_c"] or 0,
+            "PENDING": exp_stats["pending_c"] or 0,
+            "APPROVED": exp_stats["approved_c"] or 0,
+            "REJECTED": exp_stats["rejected_c"] or 0,
         }
+
 
         ctx["status_choices"] = ExpenseStatus.choices
         ctx["category_choices"] = ExpenseCategory.choices

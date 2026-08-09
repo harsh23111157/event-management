@@ -80,14 +80,25 @@ class TaskListView(LoginRequiredMixin, ListView):
             base_qs = base_qs.filter(event__manager=user)
 
         now = timezone.now()
+        from django.db.models import Count
+        task_stats = base_qs.aggregate(
+            all_c=Count("id"),
+            todo_c=Count("id", filter=Q(status=TaskStatus.TODO)),
+            in_prog_c=Count("id", filter=Q(status=TaskStatus.IN_PROGRESS)),
+            completed_c=Count("id", filter=Q(status=TaskStatus.COMPLETED)),
+            blocked_c=Count("id", filter=Q(status=TaskStatus.BLOCKED)),
+            overdue_c=Count("id", filter=~Q(status=TaskStatus.COMPLETED) & Q(due_date__lt=now)),
+        )
+
         ctx["status_counts"] = {
-            "all": base_qs.count(),
-            "TODO": base_qs.filter(status=TaskStatus.TODO).count(),
-            "IN_PROGRESS": base_qs.filter(status=TaskStatus.IN_PROGRESS).count(),
-            "COMPLETED": base_qs.filter(status=TaskStatus.COMPLETED).count(),
-            "BLOCKED": base_qs.filter(status=TaskStatus.BLOCKED).count(),
-            "overdue": base_qs.exclude(status=TaskStatus.COMPLETED).filter(due_date__lt=now).count(),
+            "all": task_stats["all_c"] or 0,
+            "TODO": task_stats["todo_c"] or 0,
+            "IN_PROGRESS": task_stats["in_prog_c"] or 0,
+            "COMPLETED": task_stats["completed_c"] or 0,
+            "BLOCKED": task_stats["blocked_c"] or 0,
+            "overdue": task_stats["overdue_c"] or 0,
         }
+
         ctx["status_choices"] = TaskStatus.choices
         ctx["priority_choices"] = TaskPriority.choices
         ctx["current_status"] = self.request.GET.get("status", "")

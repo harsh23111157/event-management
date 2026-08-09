@@ -51,7 +51,13 @@ class EventTask(models.Model):
 
     class Meta:
         ordering = ["due_date"]
-        indexes = [models.Index(fields=["status"]), models.Index(fields=["priority"])]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["priority"]),
+            models.Index(fields=["due_date"]),
+            models.Index(fields=["assigned_to"]),
+        ]
+
 
     def __str__(self) -> str:
         return f"{self.title} ({self.event})"
