@@ -96,16 +96,10 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "event"
 
     def get_queryset(self):
-        user = self.request.user
-        qs = Event.objects.select_related("venue", "manager")
-        if user.is_staff_member:
-            qs = qs.filter(staff_assignments__staff=user).distinct()
-        elif user.is_event_manager:
-            # Event manager can only view their own events
-            qs = qs.filter(manager=user)
-        return qs
+        return Event.objects.select_related("venue", "manager")
 
     def get_context_data(self, **kwargs):
+
         ctx = super().get_context_data(**kwargs)
         event = self.object
         user = self.request.user
