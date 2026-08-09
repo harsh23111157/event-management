@@ -357,13 +357,21 @@ class AttendanceCheckOutView(LoginRequiredMixin, View):
     def post(self, request, pk):
         event = get_object_or_404(Event, pk=pk)
         user = request.user
-        att = get_object_or_404(Attendance, event=event, staff=user)
+        if not (user.is_admin or event.staff_assignments.filter(staff=user).exists()):
+            raise PermissionDenied("You are not assigned to this event.")
+
+        att, created = Attendance.objects.get_or_create(
+            event=event,
+            staff=user,
+            defaults={"check_in": timezone.now(), "status": AttendanceStatus.PRESENT}
+        )
         att.check_out = timezone.now()
         att.save()
         from apps.audit.services import AuditService
         AuditService.log(user, "ATTENDANCE_CHECKOUT", "attendance", att.id, f"Checked out of {event.name}")
         messages.success(request, f"Checked out of {event.name} successfully.")
         return redirect(request.META.get("HTTP_REFERER", "attendance_list"))
+
 
 
 class ManagerAttendanceRecordView(LoginRequiredMixin, View):

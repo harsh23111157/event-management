@@ -150,4 +150,17 @@ class OperationsTests(TestCase):
         att.refresh_from_db()
         self.assertEqual(att.status, AttendanceStatus.PRESENT)
 
+    def test_staff_attendance_checkout_without_prior_checkin_does_not_404(self):
+        from django.test import Client
+        EventStaff.objects.create(event=self.event, staff=self.staff, role="Lead Tech")
+        client = Client()
+        client.force_login(self.staff)
+
+        # Post directly to checkout without checking in first -> should succeed 302, not 404
+        resp = client.post(f"/operations/events/{self.event.id}/checkout/")
+        self.assertEqual(resp.status_code, 302)
+        att = Attendance.objects.get(event=self.event, staff=self.staff)
+        self.assertIsNotNone(att.check_out)
+
+
 
