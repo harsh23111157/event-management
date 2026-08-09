@@ -1,10 +1,16 @@
 """Root URL configuration."""
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import include, path
 from django.views.generic.base import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+
+def health_check(request):
+    return HttpResponse("OK", content_type="text/plain", status=200)
+
 urlpatterns = [
+    path("health/", health_check, name="health_check"),
     path("", RedirectView.as_view(url="/dashboard/", permanent=False), name="home"),
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("apps.accounts.urls_api")),

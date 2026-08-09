@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 from pathlib import Path
 import environ
@@ -15,6 +16,12 @@ SECRET_KEY = env("SECRET_KEY", default="dev-insecure-secret-key-change-in-produc
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
+
+# Auto-include Railway's public domain (set automatically by the platform).
+_railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+if _railway_domain and _railway_domain not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_railway_domain)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_railway_domain}")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
