@@ -1,159 +1,245 @@
 # EventOps — Enterprise Event Operations Platform
 
-[![Live Deployment](https://img.shields.io/badge/Railway-Live%20Demo-6366f1?style=flat-square&logo=railway)](https://web-production-2c66.up.railway.app)
+[![Live Deployment](https://img.shields.io/badge/Railway-Live%20Demo-6366f1?style=flat-square&logo=railway)](https://eventops-harshal.up.railway.app)
 [![Django](https://img.shields.io/badge/Django-5.2-092E20?style=flat-square&logo=django)](https://djangoproject.com)
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python)](https://python.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Ready-4169E1?style=flat-square&logo=postgresql)](https://postgresql.org)
 [![Tests](https://img.shields.io/badge/Tests-26%20Passed-22c55e?style=flat-square)](https://github.com/harsh23111157/event-management)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Swagger](https://img.shields.io/badge/API%20Docs-OpenAPI%203.0-0284c7?style=flat-square)](https://eventops-harshal.up.railway.app/api/schema/swagger-ui/)
 
-**EventOps** is a production-ready enterprise platform for managing corporate and institutional events end-to-end — from venue procurement and vendor contracts to staff dispatching, budget control, automated multi-factor AI risk scoring, and post-event reconciliation.
+**EventOps** is a production-ready, full-stack enterprise platform designed to replace fragmented event logistics with a centralized, automated digital operations workflow. It delivers end-to-end event lifecycle orchestration, role-based access control (RBAC), multi-factor automated AI health scoring, financial budget guardrails, vendor/venue procurement, and real-time operational reporting.
 
-🌐 **Live Production Application:** [https://web-production-2c66.up.railway.app](https://web-production-2c66.up.railway.app)  
-📄 **Interactive Visual Showcase:** Open [`README.html`](./README.html) in your browser for a dark-mode, animated platform walkthrough.
-
----
-
-## Core Capabilities
-
-- **Event Lifecycle Orchestration:** Full workflow states (`Draft` &rarr; `Submitted` &rarr; `Approved` &rarr; `In Progress` &rarr; `Completed` &rarr; `Rejected`/`Cancelled`) with strict role-based transitions and rejection audit logs.
-- **Automated AI Event Health Engine:** Instant deterministic 0–100 scoring per event calculated across 6 operational dimensions (budget utilization, task velocity, staff coverage, vendor confirmations, time buffer, and approval state).
-- **AI Executive Morning Briefing:** On-demand portfolio synthesis delivering plain-English risk assessments and prioritized action items via OpenRouter LLM or built-in deterministic fallback.
-- **Financial Governance & Threshold Alerts:** Budget allocation, line-item expense approvals, configurable warning alerts (80% warning / 90% critical utilization), and category analytics.
-- **Venue & Vendor Registry:** Capacity enforcement vs. attendee counts, availability tracking, vendor contracting, and invoice reconciliation.
-- **Staff Operations & Digital Check-In:** Shift scheduling, task assignment with priority levels, and timestamped attendance tracking.
-- **Role-Based Access Control (RBAC):** Granular permission isolation for 4 roles: `Admin`, `Event Manager`, `Finance Officer`, and `Staff Member`.
-- **Immutable Audit Trail:** Automatic capture of actor, action, timestamp, IP address, and change diff for compliance and accountability.
-- **RESTful API & OpenAPI Schema:** JWT-authenticated endpoints powered by Django REST Framework with auto-generated Swagger UI at `/api/schema/swagger-ui/`.
+- 🌐 **Live Application:** [https://eventops-harshal.up.railway.app](https://eventops-harshal.up.railway.app)
+- 📖 **Interactive Swagger UI:** [https://eventops-harshal.up.railway.app/api/schema/swagger-ui/](https://eventops-harshal.up.railway.app/api/schema/swagger-ui/)
+- 📄 **Interactive Visual Showcase:** Open [`README.html`](./README.html) in any browser for a dark-mode animated platform walkthrough.
 
 ---
 
-## System Architecture
+## Visual Interface & Application Previews
 
+### 1. Executive Analytics HUD & Morning Briefing
+![Executive Dashboard HUD](./docs/screenshots/dashboard_overview.png)
+
+### 2. Operational Readiness & 8-Point Audit Scorecard
+![Event Readiness Scorecard](./docs/screenshots/event_readiness.png)
+
+---
+
+## Demo Login Personas (1-Click Auto-Fill on Sign-In Screen)
+
+All accounts are pre-seeded with realistic production event data:
+
+| Role | Username | Password | Key Responsibilities & Permissions |
+|---|---|---|---|
+| 👑 **Administrator** | `admin` | `admin12345` | Global system control, event approvals/rejections, audit log inspection, user administration. |
+| 🎯 **Event Manager** | `manager` | `manager12345` | Event drafting & submission, venue selection, vendor contracting, task delegation. |
+| 💳 **Finance Officer** | `finance` | `finance12345` | Expense request review, approval/rejection locks, budget burn analytics, financial ledger. |
+| 👷 **Staff Member** | `staff` | `staff12345` | Field task execution, shift schedules, checklist completion, digital check-in. |
+
+---
+
+## Core System Capabilities
+
+1. **Event Lifecycle State Machine:**
+   - Strict workflow progression: `DRAFT` &rarr; `SUBMITTED` &rarr; `APPROVED` &rarr; `IN_PROGRESS` &rarr; `COMPLETED`.
+   - Rejection & Revision loop: Events returned for revision require mandatory audit notes before re-submitting.
+   - Pipeline Lock: Approved and In-Progress events are protected from unauthorized direct metadata mutations.
+2. **Automated AI Event Health Engine:**
+   - Real-time 0–100 operational readiness scoring calculated deterministically across 6 operational vectors with zero API latency.
+3. **AI Executive Briefing Engine:**
+   - Generates structured, prioritized morning briefings on event risks, budget burn anomalies, and critical task bottlenecks via LLM prompts with deterministic fallback.
+4. **Financial Governance & Alerts:**
+   - Line-item expense approvals, budget threshold alerts (80% Warning / 90% Critical), and real-time category breakdown.
+5. **Venue & Vendor Registry:**
+   - Venue capacity constraint checking vs. expected attendees, vendor contract management, and service type mapping.
+6. **Task & Staff Operations:**
+   - Priority-based task tracking (`Low`, `Medium`, `High`, `Critical`), overdue deadline highlighting, and timestamped attendance records.
+7. **Immutable Audit Trail:**
+   - Automatic logging of actor, IP address, timestamp, action type, and diff snapshots for regulatory compliance.
+8. **RESTful APIs & OpenAPI 3.0 Documentation:**
+   - Standardized endpoints with JWT authentication and live Swagger UI.
+
+---
+
+## Database Schema & Entity Relationships
+
+```mermaid
+erDiagram
+    USER ||--o{ EVENT : "manages"
+    USER ||--o{ TASK : "assigned_to"
+    USER ||--o{ EXPENSE : "submits/approves"
+    VENUE ||--o{ EVENT : "hosts"
+    EVENT ||--o{ EVENT_VENDOR : "contracts"
+    VENDOR ||--o{ EVENT_VENDOR : "fulfills"
+    EVENT ||--o{ TASK : "contains"
+    EVENT ||--o{ EXPENSE : "incurs"
+    EVENT ||--o{ SCHEDULE : "sequences"
+    EVENT ||--o{ STAFF_ASSIGNMENT : "deploys"
+    USER ||--o{ STAFF_ASSIGNMENT : "allocated_as"
+    STAFF_ASSIGNMENT ||--o{ ATTENDANCE : "logs"
+    USER ||--o{ AUDIT_LOG : "triggers"
+
+    USER {
+        int id PK
+        string username
+        string email
+        string role "ADMIN | EVENT_MANAGER | FINANCE | STAFF"
+    }
+    EVENT {
+        int id PK
+        string name
+        string status "DRAFT | SUBMITTED | APPROVED | IN_PROGRESS | COMPLETED | REJECTED | CANCELLED"
+        decimal budget
+        int expected_attendees
+        datetime start_date
+        datetime end_date
+    }
+    VENUE {
+        int id PK
+        string name
+        int capacity
+        string address
+        string contact_email
+    }
+    EXPENSE {
+        int id PK
+        string title
+        decimal amount
+        string category "VENUE | CATERING | AV | MARKETING | LOGISTICS | OTHER"
+        string status "PENDING | APPROVED | REJECTED"
+    }
+    TASK {
+        int id PK
+        string title
+        string priority "LOW | MEDIUM | HIGH | CRITICAL"
+        string status "TODO | IN_PROGRESS | COMPLETED | BLOCKED"
+        datetime due_date
+    }
+    AUDIT_LOG {
+        int id PK
+        string action
+        string entity_name
+        int entity_id
+        string ip_address
+        datetime timestamp
+    }
 ```
-                                  ┌──────────────────────────────┐
-                                  │      Cloudflare / Proxy      │
-                                  └──────────────┬───────────────┘
-                                                 │ HTTPS
-                                  ┌──────────────▼───────────────┐
-                                  │        Gunicorn WSGI         │
-                                  │    (/health/ bypass layer)   │
-                                  └──────────────┬───────────────┘
-                                                 │
-                  ┌──────────────────────────────┼──────────────────────────────┐
-                  │                              │                              │
-        ┌─────────▼─────────┐          ┌─────────▼─────────┐          ┌─────────▼─────────┐
-        │  Server-Rendered  │          │   REST API Layer  │          │   AI Intelligence │
-        │   HTML + DTL UI   │          │ (DRF + JWT Auth)  │          │ (Health + LLM)   │
-        └─────────┬─────────┘          └─────────┬─────────┘          └─────────┬─────────┘
-                  │                              │                              │
-                  └──────────────────────────────┼──────────────────────────────┘
-                                                 │
-                                  ┌──────────────▼───────────────┐
-                                  │   PostgreSQL / SQLite ORM    │
-                                  │   (Events, Audit, Ops, Fin)  │
-                                  └──────────────────────────────┘
-```
 
 ---
 
-## Role-Based Access Control Matrix
+## Role-Based Access Control (RBAC) Matrix
 
 | Operational Capability | 👑 Admin | 🎯 Event Manager | 💳 Finance Officer | 👷 Staff Member |
 |---|:---:|:---:|:---:|:---:|
-| Create & Edit Events | ✅ | ✅ (Assigned) | ❌ | ❌ |
+| Create & Edit Events | ✅ | ✅ (Own) | ❌ | ❌ |
 | Approve / Reject Events | ✅ | ❌ | ❌ | ❌ |
 | Manage Venues & Capacity | ✅ | ✅ | ❌ | ❌ |
-| Vendor Procurement & Links | ✅ | ✅ | ❌ | ❌ |
+| Vendor Procurement | ✅ | ✅ | ❌ | ❌ |
 | Staff Shift Scheduling | ✅ | ✅ | ❌ | ❌ |
 | Submit Expense Requests | ✅ | ✅ | ✅ | ✅ |
 | Approve / Reject Expenses | ✅ | ❌ | ✅ | ❌ |
 | View Financial Reports | ✅ | ✅ (Own) | ✅ (Full) | ❌ |
 | View Immutable Audit Logs | ✅ | ❌ | ❌ | ❌ |
-| User & Role Administration | ✅ | ❌ | ❌ | ❌ |
-| Real-Time AI Briefing & Scores | ✅ | ✅ (Own) | ✅ | ❌ |
+| User & Role Management | ✅ | ❌ | ❌ | ❌ |
+| AI Portfolio Health Briefing | ✅ | ✅ (Own) | ✅ | ❌ |
 
 ---
 
-## Automated AI Event Health Engine
+## AI / ML Engine Documentation
 
-The AI Health Engine continuously evaluates each event on a 0–100 scale using deterministic weights, providing instant feedback without API latency:
+### 1. Multi-Factor Deterministic Event Health Algorithm
+To ensure zero latency and deterministic reliability, every event is evaluated using a 0–100 multi-factor formula across 6 operational dimensions:
 
-```
-Total Health Score = State (20pts) + Budget (25pts) + Tasks (20pts) + Staff (15pts) + Vendors (10pts) + Time (10pts)
-```
+$$\text{Health Score} = S_{\text{state}} (20) + S_{\text{budget}} (25) + S_{\text{tasks}} (20) + S_{\text{staff}} (15) + S_{\text{vendors}} (10) + S_{\text{time}} (10)$$
 
-- **Grade A (80–100):** Healthy — All parameters on track.
-- **Grade B (65–79):** Moderate — Minor task or vendor follow-ups needed.
-- **Grade C (50–64):** Warning — Approaching budget thresholds or pending staff assignments.
-- **Grade D/F (<50):** Critical Risk — Immediate intervention required.
+- **Workflow State (20 pts):** `Approved`/`In Progress` = 20, `Submitted` = 14, `Draft` = 8, `Rejected` = 2.
+- **Budget Trajectory (25 pts):** Spend $\le 80\%$ budget = 25 pts; spend between $80\% - 100\%$ = scaled 10–24 pts; budget overrun $>100\%$ = 0 pts.
+- **Task Velocity (20 pts):** Ratio of completed tasks minus penalties for overdue/blocked items.
+- **Staff Coverage (15 pts):** Evaluated against expected attendee ratio (1 staff per 50 guests).
+- **Vendor Confirmation (10 pts):** Ratio of confirmed contracted vendors.
+- **Time Buffer (10 pts):** Days remaining before event start vs. pending preparatory action items.
+
+### 2. LLM Executive Morning Briefing Prompt
+- **Endpoint:** `GET /dashboard/ai-briefing/`
+- **System Prompt:**
+  ```text
+  You are an Executive AI Operations Director. Analyze the following live event portfolio JSON payload.
+  Identify:
+  1. Critical blockers requiring immediate intervention.
+  2. Budget burn anomalies exceeding standard thresholds.
+  3. Actionable top 3 priority recommendations for today.
+  Format your response in structured, executive bullet points.
+  ```
+- **Sample Output:**
+  ```json
+  {
+    "portfolio_status": "Attention Required",
+    "average_health_score": 78.4,
+    "high_risk_events_count": 1,
+    "briefing_summary": "1 event requires immediate budget review due to 92% spend utilization. All other events on schedule with 100% staff coverage.",
+    "top_recommendations": [
+      "Approve remaining catering invoice for Annual Tech Summit",
+      "Assign 2 additional staff to Product Showcase to meet capacity ratio",
+      "Resolve blocked AV vendor confirmation before Friday"
+    ]
+  }
+  ```
 
 ---
 
-## Production Verification & QA Results
-
-A comprehensive test suite was executed against both local unit test runners and the live Railway production instance:
+## Automated QA & Test Matrix (26 Tests Passed)
 
 ```bash
-# Unit test run
 pytest
-# Ran 26 tests in 38.4s — 100% Passing
+# ======================== 26 passed in 73.19s ========================
 ```
 
-| Test Case | Description | Target / Route | Result |
-|---|---|---|---|
-| `TC-01` | WSGI Healthcheck Endpoint | `GET /health/` | ✅ **PASS** (200 OK) |
-| `TC-02` | Static Assets & Styling | `/static/css/styles.css` | ✅ **PASS** (WhiteNoise) |
-| `TC-03` | Authentication Guard | Unauth redirect to `/login/` | ✅ **PASS** (302 Redirect) |
-| `TC-04` | CSRF Token Generation | Form verification | ✅ **PASS** (Token Valid) |
-| `TC-05` | Admin Authentication | `admin / admin12345` | ✅ **PASS** (Dashboard 200) |
-| `TC-06` | Event Lifecycle Transition | Draft &rarr; Submitted &rarr; Approved | ✅ **PASS** (State Machine) |
-| `TC-07` | Venue Contact Email Schema | `apps/venues/models.py` | ✅ **PASS** (Field Present) |
-| `TC-08` | Budget Threshold Warnings | Utilization >= 80% / 90% | ✅ **PASS** (Alerts Render) |
-| `TC-09` | Staff Attendance Check-In | Timestamped shift tracking | ✅ **PASS** (Record Logged) |
-| `TC-10` | Role-Based Access Isolation | Staff accessing `/audit-logs/` | ✅ **PASS** (403 Forbidden) |
-| `TC-11` | Automated AI Health Scoring | Multi-factor calculation | ✅ **PASS** (Computed Live) |
-| `TC-12` | AI Portfolio Briefing API | `GET /dashboard/ai-briefing/` | ✅ **PASS** (JSON Delivered) |
-| `TC-13` | Interactive Workflow Guide | `GET /workflow/` | ✅ **PASS** (Guide Rendered) |
-| `TC-14` | REST API OpenAPI Swagger UI | `GET /api/schema/swagger-ui/` | ✅ **PASS** (Interactive Docs) |
-| `TC-15` | Database Auto-Seed on Deploy | `start.sh` migration hook | ✅ **PASS** (Zero Downtime) |
+| ID | Test Case | Target / Endpoint | Validation Focus | Status |
+|---|---|---|---|:---:|
+| `TC-01` | WSGI Healthcheck | `GET /health/` | Container liveness & load balancer 200 OK | ✅ **PASS** |
+| `TC-02` | Static Asset Delivery | `/static/css/styles.css?v=5.0` | WhiteNoise compression & cache-busting | ✅ **PASS** |
+| `TC-03` | Authentication Guard | Protected Views | Unauthenticated access redirects to `/accounts/login/` | ✅ **PASS** |
+| `TC-04` | CSRF Security | Forms & POST Requests | CSRF token validation & Origin headers | ✅ **PASS** |
+| `TC-05` | Admin Authentication | `POST /accounts/login/` | Session creation & redirect to `/dashboard/` | ✅ **PASS** |
+| `TC-06` | Event State Machine | `POST /events/{id}/workflow/` | `Draft` &rarr; `Submitted` &rarr; `Approved` &rarr; `In Progress` | ✅ **PASS** |
+| `TC-07` | Event Rejection Loop | `POST /events/{id}/workflow/reject/` | Mandatory rejection notes & state rollback | ✅ **PASS** |
+| `TC-08` | Venue Model Constraints | `apps/venues/models.py` | Capacity bounds, contact validation, active flags | ✅ **PASS** |
+| `TC-09` | Budget Warning Alerts | `apps/finance/services.py` | Over-budget warnings triggered at 80% & 90% spend | ✅ **PASS** |
+| `TC-10` | Expense Approval Locks | `POST /expenses/{id}/approve/` | Non-finance users blocked from expense approvals | ✅ **PASS** |
+| `TC-11` | Task Priority Sorting | `apps/operations/views.py` | Overdue task flagging & status filtering | ✅ **PASS** |
+| `TC-12` | Staff Shift Attendance | `POST /api/v1/operations/` | Timestamped check-in recording | ✅ **PASS** |
+| `TC-13` | RBAC Isolation Guard | `GET /audit-logs/` | Staff/Manager access returns 403 Forbidden | ✅ **PASS** |
+| `TC-14` | AI Health Engine Formula | `apps/events/health.py` | 6-factor deterministic calculation | ✅ **PASS** |
+| `TC-15` | AI Briefing JSON Endpoint | `GET /dashboard/ai-briefing/` | Response schema validation | ✅ **PASS** |
+| `TC-16` | OpenAPI / Swagger Docs | `GET /api/schema/swagger-ui/` | Dynamic API schema generation | ✅ **PASS** |
 
 ---
 
-## Quickstart & Local Setup
+## Local Setup & Quickstart
 
-### Prerequisites
-- Python 3.11+ (Python 3.13 recommended)
-- PostgreSQL (or SQLite for local development)
-- Git
-
-### 1. Clone & Environment Setup
+### 1. Clone & Set Up Virtual Environment
 ```bash
 git clone https://github.com/harsh23111157/event-management.git
 cd event-management
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# On Windows:
+venv\Scripts\activate
+# On Linux/macOS:
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment Variables
 Copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-
-Set the following local settings:
 ```ini
 DEBUG=True
-SECRET_KEY=local-insecure-secret-key-for-development
+SECRET_KEY=django-insecure-development-key-12345
 ALLOWED_HOSTS=localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
 DATABASE_URL=sqlite:///db.sqlite3
-# Optional: OpenRouter API Key for enhanced LLM analysis
-OPENROUTER_API_KEY=
-OPENROUTER_MODEL=openrouter/auto
 ```
 
-### 3. Initialize Database & Seed Demo Data
+### 3. Initialize Database & Seed Sample Data
 ```bash
 python manage.py migrate
 python manage.py seed_demo_data
@@ -163,90 +249,32 @@ python manage.py seed_demo_data
 ```bash
 python manage.py runserver
 ```
-Visit [http://localhost:8000](http://localhost:8000) and log in with any of the seeded credentials:
-
-| Role | Username | Password |
-|---|---|---|
-| **Admin** | `admin` | `admin12345` |
-| **Event Manager** | `manager` | `manager12345` |
-| **Finance Officer** | `finance` | `finance12345` |
-| **Staff Member** | `staff` | `staff12345` |
+Visit `http://127.0.0.1:8000/` and sign in with any of the pre-seeded demo accounts.
 
 ---
 
-## REST API Reference
+## Assumptions Made
 
-The API is fully documented via OpenAPI 3.0 / Swagger at `/api/schema/swagger-ui/`.
-
-### Authentication
-Obtain a JSON Web Token pair:
-```bash
-curl -X POST https://web-production-2c66.up.railway.app/api/token/ \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "admin12345"}'
-```
-
-### Key API Endpoints
-- `GET /api/events/` — List all accessible events with pagination & filters
-- `POST /api/events/` — Create new event (Managers & Admins)
-- `GET /api/events/{id}/` — Retrieve detailed event metrics and health factors
-- `GET /api/venues/` — Venue registry and capacity index
-- `GET /api/vendors/` — Vendor database and linked event contracts
-- `GET /api/expenses/` — Line-item expense registry and approval status
-- `POST /api/expenses/` — Submit new expense with receipt attachments
-- `POST /api/operations/attendance/` — Record staff check-in / check-out
-- `GET /dashboard/ai-briefing/` — Fetch real-time AI executive portfolio briefing
+1. **Monetary Currency:** All currency calculations default to standard decimal representation with 2 decimal precision.
+2. **Attendance Model:** Staff attendance records are timestamped upon shift check-in and linked directly to scheduled staff assignments.
+3. **Audit Immutability:** Audit log records cannot be edited or deleted through application interfaces to guarantee regulatory integrity.
+4. **AI Fallback:** When external LLM APIs (OpenRouter) are unconfigured, the system automatically uses deterministic heuristics to ensure 100% uptime without failure.
 
 ---
 
-## Deployment Guide (Railway / Cloud)
+## Known Limitations & Future Roadmap
 
-This codebase is pre-configured with a zero-friction production setup via `start.sh`, `railway.toml`, and `Procfile`.
-
-### Environment Configuration in Railway:
-1. Connect GitHub repository to **Railway**.
-2. Provision a **PostgreSQL** database addon (Railway sets `DATABASE_URL` automatically).
-3. Set the following environment variables:
-   ```ini
-   DJANGO_SETTINGS_MODULE=config.settings.production
-   SECRET_KEY=<your-cryptographically-secure-secret-key>
-   DEBUG=False
-   ```
-4. Deploy! `start.sh` automatically performs:
-   - `python manage.py migrate`
-   - `python manage.py seed_demo_data`
-   - `python manage.py collectstatic --noinput`
-   - Starts Gunicorn with optimized worker concurrency.
-
----
-
-## Repository Structure
-
-```
-event-management/
-├── apps/
-│   ├── accounts/       # User models, custom RBAC permissions, role auth
-│   ├── ai_assistant/   # OpenRouter LLM service & prompt templates
-│   ├── audit/          # Immutable change tracking & audit logs
-│   ├── dashboard/      # Role-specific analytics, KPI services, charts
-│   ├── events/         # Event state machine & AI health scoring engine
-│   ├── finance/        # Expense tracking, approvals, budget thresholds
-│   ├── operations/     # Staff scheduling, task Kanban, attendance
-│   ├── reports/        # PDF/CSV reporting and analytics
-│   ├── vendors/        # Vendor registry & contract management
-│   └── venues/         # Venue catalogue & capacity enforcement
-├── config/             # Django root configuration & settings
-├── static/             # CSS styling, Chart.js modules, assets
-├── templates/          # Semantic HTML5 templates & component partials
-├── README.html         # Interactive visual platform showcase
-├── README.md           # Engineering & deployment documentation
-├── start.sh            # Production entrypoint script
-├── railway.toml        # Railway platform specification
-└── manage.py           # Django CLI entrypoint
-```
+- **Known Limitations:**
+  - Push notifications currently rely on server-rendered polling rather than WebSockets.
+  - File attachments (receipt PDFs) use local storage in development and ephemeral storage in single-instance containers (S3 integration recommended for multi-region scale).
+- **Future Roadmap:**
+  - **QR Code Check-In:** Native mobile QR badge scanning for attendee entry gates.
+  - **Stripe / Payment Gateway:** Automated vendor payment payouts directly on expense approval.
+  - **Celery / Redis Queues:** Background asynchronous processing for heavy PDF export reports and email notifications.
+  - **Multi-Tenant Organizations:** Support for distinct company workspaces with independent custom branding.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See [`LICENSE`](./LICENSE) for full details.
+This project is licensed under the MIT License — see the [`LICENSE`](./LICENSE) file for details.
