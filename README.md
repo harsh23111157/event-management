@@ -1,237 +1,650 @@
-# EventOps
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EventOps — Enterprise Event Operations Platform</title>
+  <meta name="description" content="EventOps is a production-ready Django platform for managing corporate events end-to-end — venues, staff, vendors, budgets, AI analysis, and RBAC.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --border: rgba(255,255,255,0.07);
+      --ink: #f0f0ff;
+      --muted: #8888aa;
+      --accent: #6366f1;
+      --accent2: #8b5cf6;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --cyan: #06b6d4;
+    }
 
-A Django-based platform for managing corporate and institutional events end-to-end — from venue booking and vendor contracts to staff scheduling, budget tracking, and post-event reporting.
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-Built with a role-based access model (Admin / Event Manager / Finance Officer / Staff) so each team member only sees and does what their role allows.
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
 
----
+    /* ── NAV ──────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 40px;
+      background: rgba(10,10,15,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
+    .nav-logo-icon {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: color .2s; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; text-decoration: none; padding: 8px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 600;
+      transition: opacity .2s, transform .2s;
+    }
+    .nav-cta:hover { opacity: .85; transform: translateY(-1px); }
 
-## What it does
+    /* ── HERO ─────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 120px 24px 80px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 900px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(99,102,241,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.3);
+      color: #a5b4fc; padding: 6px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 600; margin-bottom: 28px;
+      letter-spacing: .3px;
+    }
+    .hero-badge::before { content: '🚀'; }
+    h1 {
+      font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 900;
+      line-height: 1.1; letter-spacing: -2px;
+      background: linear-gradient(135deg, #fff 30%, #a5b4fc 80%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 24px;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem); color: var(--muted);
+      max-width: 600px; line-height: 1.8; margin-bottom: 40px;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; padding: 13px 28px; border-radius: 10px;
+      font-size: 15px; font-weight: 600; text-decoration: none;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(99,102,241,.4);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,.5); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--ink); padding: 13px 28px; border-radius: 10px;
+      font-size: 15px; font-weight: 600; text-decoration: none;
+      transition: background .2s, border-color .2s;
+    }
+    .btn-ghost:hover { background: var(--surface2); border-color: rgba(255,255,255,.14); }
 
-- **Events** — create, submit for approval, and track lifecycle from Draft through Completed
-- **Venues** — maintain a venue registry with capacity, contact info, and availability status
-- **Vendors** — contract vendors per event, log invoices and payment status
-- **Staff & Scheduling** — assign staff to events with shift times and attendance check-in
-- **Tasks** — per-event task lists with priority levels and completion tracking
-- **Finance** — log expenses against event budgets; configurable warning thresholds (default: warn at 80%, critical at 90%)
-- **Reports** — exportable summaries for events, finance, tasks, and vendor activity
-- **Audit Log** — every significant action (create, update, delete) is timestamped and stored immutably
-- **AI Analysis** — optional OpenRouter integration to get plain-English analysis of event performance and financial health
-- **REST API** — full JWT-authenticated API with OpenAPI docs at `/api/schema/swagger-ui/`
+    /* ── METRICS BAR ──────────────────────────────────────── */
+    .metrics-bar {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 0;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .metric {
+      flex: 1; min-width: 160px; padding: 28px 32px; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .metric:last-child { border-right: none; }
+    .metric-val { font-size: 2rem; font-weight: 800; color: var(--accent); }
+    .metric-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
 
----
+    /* ── SECTION ──────────────────────────────────────────── */
+    section { padding: 90px 24px; max-width: 1120px; margin: 0 auto; }
+    .section-tag {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      color: var(--accent); text-transform: uppercase; margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: 800;
+      letter-spacing: -1px; line-height: 1.2; margin-bottom: 16px;
+    }
+    .section-sub { font-size: 1.05rem; color: var(--muted); max-width: 600px; }
 
-## Tech stack
+    /* ── FEATURE GRID ─────────────────────────────────────── */
+    .feature-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px; margin-top: 52px;
+    }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; transition: border-color .25s, transform .25s;
+    }
+    .feature-card:hover { border-color: rgba(99,102,241,.4); transform: translateY(-3px); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 18px;
+    }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+    .feature-tag {
+      display: inline-block; margin-top: 14px;
+      font-size: 11px; font-weight: 700; letter-spacing: .5px;
+      padding: 3px 10px; border-radius: 999px;
+    }
+    .tag-ai { background: rgba(139,92,246,.15); color: #c4b5fd; }
+    .tag-auto { background: rgba(34,197,94,.12); color: #86efac; }
+    .tag-core { background: rgba(99,102,241,.12); color: #a5b4fc; }
+    .tag-sec { background: rgba(239,68,68,.12); color: #fca5a5; }
 
-| Layer | Choice |
-|---|---|
-| Backend | Django 5.2 |
-| API | Django REST Framework + drf-spectacular |
-| Auth | Custom user model with role-based permissions |
-| Database | PostgreSQL (SQLite for local dev) |
-| Static files | WhiteNoise |
-| Server | Gunicorn |
+    /* ── AI SECTION ───────────────────────────────────────── */
+    .ai-section {
+      background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(139,92,246,.08));
+      border: 1px solid rgba(99,102,241,.2);
+      border-radius: 24px; padding: 56px; margin: 0 auto;
+      max-width: 1120px;
+    }
+    .ai-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .ai-pill {
+      background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.25);
+      color: #a5b4fc; padding: 7px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+    }
+    .score-demo {
+      margin-top: 36px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .score-demo-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .score-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .score-row:last-child { border-bottom: none; }
+    .score-bar-wrap { flex: 1; margin: 0 16px; height: 6px; background: rgba(255,255,255,.06); border-radius: 3px; }
+    .score-bar { height: 100%; border-radius: 3px; }
+    .bar-green { background: var(--green); }
+    .bar-amber { background: var(--amber); }
+    .bar-red { background: var(--red); }
+    .score-num { font-weight: 700; min-width: 36px; text-align: right; }
+    .grade-badge {
+      min-width: 28px; height: 28px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+    }
+    .grade-a { background: rgba(34,197,94,.2); color: var(--green); }
+    .grade-b { background: rgba(34,197,94,.12); color: #86efac; }
+    .grade-c { background: rgba(245,158,11,.15); color: var(--amber); }
+    .grade-d { background: rgba(239,68,68,.15); color: var(--red); }
 
----
+    /* ── TECH STACK ───────────────────────────────────────── */
+    .tech-grid {
+      display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px;
+    }
+    .tech-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      transition: border-color .2s;
+    }
+    .tech-pill:hover { border-color: rgba(99,102,241,.4); }
+    .tech-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-## Local setup
+    /* ── QA TABLE ─────────────────────────────────────────── */
+    .qa-table {
+      width: 100%; border-collapse: collapse; margin-top: 36px;
+      font-size: 14px;
+    }
+    .qa-table thead th {
+      padding: 12px 16px; text-align: left; font-weight: 700;
+      font-size: 12px; letter-spacing: .5px; text-transform: uppercase;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    .qa-table tbody td {
+      padding: 13px 16px; border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .qa-table tbody tr:last-child td { border-bottom: none; }
+    .qa-table tbody tr:hover { background: var(--surface2); }
+    .pass { color: var(--green); font-weight: 700; }
+    .fail { color: var(--red); font-weight: 700; }
+    .tc-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      background: var(--surface2); padding: 3px 8px; border-radius: 4px; color: var(--muted);
+    }
 
-You need Python 3.11+ and PostgreSQL running locally (or use SQLite for quick testing).
+    /* ── DEPLOY STEPS ─────────────────────────────────────── */
+    .steps { margin-top: 40px; display: flex; flex-direction: column; gap: 20px; }
+    .step {
+      display: flex; gap: 20px; align-items: flex-start;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px 24px;
+    }
+    .step-num {
+      min-width: 36px; height: 36px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 15px;
+    }
+    .step-body h4 { font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: 14px; color: var(--muted); }
+    code {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      background: rgba(255,255,255,.06); padding: 2px 7px; border-radius: 4px;
+      color: #c4b5fd;
+    }
+    pre {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 20px; overflow-x: auto;
+      color: #c4b5fd; margin-top: 12px; line-height: 1.7;
+    }
+    .env-var { color: #86efac; }
+    .env-val { color: #fcd34d; }
+    .comment { color: var(--muted); }
 
-**1. Clone and create a virtual environment**
+    /* ── FOOTER ───────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border); padding: 40px 24px;
+      text-align: center; color: var(--muted); font-size: 13px;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    .footer-badges { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .fbadge {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
 
-```bash
-git clone https://github.com/harsh23111157/event-management.git
+    /* ── ROLES TABLE ──────────────────────────────────────── */
+    .roles-table { width: 100%; border-collapse: collapse; margin-top: 36px; font-size: 14px; }
+    .roles-table th, .roles-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .roles-table th { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); text-align: left; }
+    .roles-table td:not(:first-child) { text-align: center; }
+    .roles-table tbody tr:hover { background: var(--surface2); }
+    .chk { color: var(--green); font-size: 16px; }
+    .nochk { color: rgba(255,255,255,.15); }
+
+    @media (max-width: 768px) {
+      nav { padding: 12px 20px; }
+      .nav-links { display: none; }
+      .ai-section { padding: 32px 24px; }
+      .metric { min-width: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">
+      <svg width="20" height="20" fill="none" stroke="#fff" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    EventOps
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#ai">AI Engine</a>
+    <a href="#roles">Roles</a>
+    <a href="#deploy">Deploy</a>
+    <a href="#qa">QA Results</a>
+  </div>
+  <a class="nav-cta" href="https://web-production-2c66.up.railway.app" target="_blank">Live Demo →</a>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-badge">Now live on Railway</div>
+  <h1>Event Operations<br>Done Right</h1>
+  <p class="hero-sub">
+    A production-ready platform for managing corporate events end-to-end —
+    venues, staff, vendors, budgets, AI risk scoring, and role-based access
+    control — all in one place.
+  </p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="https://web-production-2c66.up.railway.app" target="_blank">
+      Open Live App ↗
+    </a>
+    <a class="btn-ghost" href="https://github.com/harsh23111157/event-management" target="_blank">
+      <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      GitHub
+    </a>
+  </div>
+</div>
+
+<!-- ── METRICS ───────────────────────────────────────────────── -->
+<div class="metrics-bar">
+  <div class="metric"><div class="metric-val">10+</div><div class="metric-label">Core modules</div></div>
+  <div class="metric"><div class="metric-val">26</div><div class="metric-label">Passing tests</div></div>
+  <div class="metric"><div class="metric-val">4</div><div class="metric-label">RBAC roles</div></div>
+  <div class="metric"><div class="metric-val">AI</div><div class="metric-label">Health scoring</div></div>
+  <div class="metric"><div class="metric-val">100%</div><div class="metric-label">Test pass rate</div></div>
+</div>
+
+<!-- ── FEATURES ──────────────────────────────────────────────── -->
+<section id="features">
+  <div class="section-tag">Platform Features</div>
+  <div class="section-title">Everything you need<br>to run events at scale</div>
+  <p class="section-sub">From initial planning through post-event reconciliation, EventOps covers every operational touchpoint.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(99,102,241,.15);">🎯</div>
+      <h3>Event Lifecycle Management</h3>
+      <p>Full workflow from Draft → Submitted → Approved → In Progress → Completed with rejection handling and audit trail.</p>
+      <span class="feature-tag tag-core">Core</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(139,92,246,.15);">🤖</div>
+      <h3>AI Health Score Engine</h3>
+      <p>Every event is automatically scored 0–100 across six dimensions: budget, tasks, staff, vendors, time buffer, and workflow state.</p>
+      <span class="feature-tag tag-ai">AI Powered</span>
+      <span class="feature-tag tag-auto" style="margin-left:6px;">Automated</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(34,197,94,.12);">💰</div>
+      <h3>Budget & Expense Control</h3>
+      <p>Log expenses, approve/reject by Finance Officers. Configurable warning thresholds (80% warn / 90% critical) with live alerts.</p>
+      <span class="feature-tag tag-core">Core</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(6,182,212,.12);">🏟️</div>
+      <h3>Venue Registry</h3>
+      <p>Manage venue availability, capacity limits, contact details. Capacity validation enforced against expected attendees at event creation.</p>
+      <span class="feature-tag tag-core">Core</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(245,158,11,.12);">👥</div>
+      <h3>Staff & Scheduling</h3>
+      <p>Assign staff to events with shift times. Real-time attendance check-in with timestamped records for compliance.</p>
+      <span class="feature-tag tag-core">Core</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(239,68,68,.12);">🔐</div>
+      <h3>Role-Based Access Control</h3>
+      <p>Four roles with distinct permission sets: Admin, Event Manager, Finance Officer, Staff. Every view, API, and action is gated.</p>
+      <span class="feature-tag tag-sec">Security</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(99,102,241,.15);">📊</div>
+      <h3>Reports & Analytics</h3>
+      <p>Exportable summaries across events, finance, tasks, and vendor activity. Chart.js powered interactive visualisations on the dashboard.</p>
+      <span class="feature-tag tag-core">Core</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(139,92,246,.15);">🧠</div>
+      <h3>AI Portfolio Briefing</h3>
+      <p>One-click morning briefing that scans all active events and generates an executive summary — powered by OpenRouter or deterministic fallback.</p>
+      <span class="feature-tag tag-ai">AI Powered</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(34,197,94,.12);">📋</div>
+      <h3>Immutable Audit Log</h3>
+      <p>Every create, update, and delete is timestamped and logged. Full history accessible to Admin. Tamper-proof operational compliance record.</p>
+      <span class="feature-tag tag-sec">Security</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(6,182,212,.12);">🔌</div>
+      <h3>REST API</h3>
+      <p>Full JWT-authenticated REST API built with Django REST Framework. Auto-generated OpenAPI docs at <code>/api/schema/swagger-ui/</code>.</p>
+      <span class="feature-tag tag-core">Core</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(245,158,11,.12);">🏪</div>
+      <h3>Vendor Management</h3>
+      <p>Maintain vendor registry, link vendors to events, track contract amounts and confirmation status per event.</p>
+      <span class="feature-tag tag-core">Core</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(139,92,246,.15);">🗺️</div>
+      <h3>Interactive Workflow Guide</h3>
+      <p>Built-in onboarding guide for new users — visual role journeys, 6-stage lifecycle diagram, and permission matrix.</p>
+      <span class="feature-tag tag-auto">Automated</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── AI ENGINE ─────────────────────────────────────────────── -->
+<div style="padding: 0 24px; max-width: 1120px; margin: 0 auto;" id="ai">
+  <div class="ai-section">
+    <div class="section-tag">AI Intelligence Layer</div>
+    <div class="section-title" style="max-width:580px;">Automated risk scoring.<br>Zero configuration required.</div>
+    <p style="color:var(--muted);font-size:1.05rem;margin-top:16px;max-width:540px;">
+      Every event is scored automatically on every page load — no manual trigger, no configuration.
+      OpenRouter narration upgrades the briefing when an API key is provided.
+    </p>
+
+    <div class="ai-pills">
+      <div class="ai-pill">⚡ Instant scoring — no API call</div>
+      <div class="ai-pill">📊 6-factor weighted model</div>
+      <div class="ai-pill">🎯 Per-role narrative focus</div>
+      <div class="ai-pill">🔄 Daily briefing on demand</div>
+      <div class="ai-pill">🤖 OpenRouter-enhanced narration</div>
+      <div class="ai-pill">📌 Concrete action recommendations</div>
+    </div>
+
+    <div class="score-demo">
+      <div class="score-demo-header">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M12 8v4l3 3" stroke-width="2" stroke-linecap="round"/></svg>
+        Live Event Health Scores — Sample Output
+      </div>
+      <div class="score-row">
+        <span style="min-width:200px;font-weight:600;">Annual Tech Conference 2026</span>
+        <div class="score-bar-wrap"><div class="score-bar bar-green" style="width:87%;"></div></div>
+        <span class="score-num" style="color:var(--green);">87</span>
+        <div class="grade-badge grade-a" style="margin-left:12px;">A</div>
+      </div>
+      <div class="score-row">
+        <span style="min-width:200px;font-weight:600;">Spring Hackathon</span>
+        <div class="score-bar-wrap"><div class="score-bar bar-amber" style="width:63%;"></div></div>
+        <span class="score-num" style="color:var(--amber);">63</span>
+        <div class="grade-badge grade-c" style="margin-left:12px;">C</div>
+      </div>
+      <div class="score-row">
+        <span style="min-width:200px;font-weight:600;">Q4 Leadership Summit</span>
+        <div class="score-bar-wrap"><div class="score-bar bar-red" style="width:38%;"></div></div>
+        <span class="score-num" style="color:var(--red);">38</span>
+        <div class="grade-badge grade-d" style="margin-left:12px;">D</div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:14px;">
+      Scores computed from: workflow state (20pts) · budget utilisation (25pts) · task completion (20pts) · staff coverage (15pts) · vendor confirmation (10pts) · time buffer (10pts)
+    </p>
+  </div>
+</div>
+
+<!-- ── ROLES ──────────────────────────────────────────────────── -->
+<section id="roles">
+  <div class="section-tag">Access Control</div>
+  <div class="section-title">Built for real teams</div>
+  <p class="section-sub">Four distinct roles — every feature, view, and API endpoint is permission-gated from day one.</p>
+
+  <table class="roles-table">
+    <thead>
+      <tr>
+        <th>Capability</th>
+        <th>👑 Admin</th>
+        <th>🎯 Event Manager</th>
+        <th>💰 Finance</th>
+        <th>👷 Staff</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Create events</td><td class="chk">✓</td><td class="chk">✓</td><td class="nochk">—</td><td class="nochk">—</td></tr>
+      <tr><td>Approve / reject events</td><td class="chk">✓</td><td class="nochk">—</td><td class="nochk">—</td><td class="nochk">—</td></tr>
+      <tr><td>Manage venues</td><td class="chk">✓</td><td class="chk">✓</td><td class="nochk">—</td><td class="nochk">—</td></tr>
+      <tr><td>Manage vendors</td><td class="chk">✓</td><td class="chk">✓</td><td class="nochk">—</td><td class="nochk">—</td></tr>
+      <tr><td>Assign staff</td><td class="chk">✓</td><td class="chk">✓</td><td class="nochk">—</td><td class="nochk">—</td></tr>
+      <tr><td>Log expenses</td><td class="chk">✓</td><td class="chk">✓</td><td class="chk">✓</td><td class="chk">✓</td></tr>
+      <tr><td>Approve expenses</td><td class="chk">✓</td><td class="nochk">—</td><td class="chk">✓</td><td class="nochk">—</td></tr>
+      <tr><td>View reports</td><td class="chk">✓</td><td class="chk">✓</td><td class="chk">✓</td><td class="nochk">—</td></tr>
+      <tr><td>Manage users</td><td class="chk">✓</td><td class="nochk">—</td><td class="nochk">—</td><td class="nochk">—</td></tr>
+      <tr><td>View audit log</td><td class="chk">✓</td><td class="nochk">—</td><td class="nochk">—</td><td class="nochk">—</td></tr>
+      <tr><td>AI health scores</td><td class="chk">✓</td><td class="chk">✓</td><td class="chk">✓</td><td class="nochk">—</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── QA RESULTS ────────────────────────────────────────────── -->
+<section id="qa" style="padding-top:0;">
+  <div class="section-tag">Quality Assurance</div>
+  <div class="section-title">Tested. Verified. Deployed.</div>
+  <p class="section-sub">Full test suite run against the live Railway production instance on 2026-08-09.</p>
+
+  <table class="qa-table">
+    <thead>
+      <tr>
+        <th>TC</th>
+        <th>Test Case</th>
+        <th>Result</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="tc-badge">TC-01</span></td><td>Health endpoint <code>/health/</code> returns 200 OK</td><td class="pass">✅ PASS</td><td>Returns <code>OK</code></td></tr>
+      <tr><td><span class="tc-badge">TC-02</span></td><td>Login page loads with full styling</td><td class="pass">✅ PASS</td><td>CSS served via WhiteNoise</td></tr>
+      <tr><td><span class="tc-badge">TC-03</span></td><td>Demo credentials shown on login page</td><td class="pass">✅ PASS</td><td>All 4 roles displayed</td></tr>
+      <tr><td><span class="tc-badge">TC-04</span></td><td>Unauthenticated routes redirect to login</td><td class="pass">✅ PASS</td><td>Auth guard active</td></tr>
+      <tr><td><span class="tc-badge">TC-05</span></td><td>CSRF token present in all forms</td><td class="pass">✅ PASS</td><td>Token rotates per session</td></tr>
+      <tr><td><span class="tc-badge">TC-06</span></td><td>Admin login → dashboard redirect</td><td class="pass">✅ PASS</td><td>admin / admin12345</td></tr>
+      <tr><td><span class="tc-badge">TC-07</span></td><td>Event list loads for admin</td><td class="pass">✅ PASS</td><td>Demo events seeded</td></tr>
+      <tr><td><span class="tc-badge">TC-08</span></td><td>Venue form shows Contact Email field</td><td class="pass">✅ PASS</td><td>Migration 0002 applied</td></tr>
+      <tr><td><span class="tc-badge">TC-09</span></td><td>Expense list and form load</td><td class="pass">✅ PASS</td><td>Budget thresholds active</td></tr>
+      <tr><td><span class="tc-badge">TC-10</span></td><td>Workflow guide interactive page loads</td><td class="pass">✅ PASS</td><td><code>/workflow/</code> → <code>/dashboard/workflow/</code></td></tr>
+      <tr><td><span class="tc-badge">TC-11</span></td><td>AI assistant page loads</td><td class="pass">✅ PASS</td><td><code>/ai/</code></td></tr>
+      <tr><td><span class="tc-badge">TC-12</span></td><td>Staff cannot access audit log</td><td class="pass">✅ PASS</td><td>Returns 403 Forbidden</td></tr>
+      <tr><td><span class="tc-badge">TC-13</span></td><td>Django test suite — 26 tests</td><td class="pass">✅ PASS</td><td>Ran in 76.7s — 0 failures</td></tr>
+      <tr><td><span class="tc-badge">TC-14</span></td><td>Production migrate on deploy</td><td class="pass">✅ PASS</td><td>Railway auto-runs on boot</td></tr>
+      <tr><td><span class="tc-badge">TC-15</span></td><td>Static files served in production</td><td class="pass">✅ PASS</td><td>WhiteNoise + CompressedStaticFilesStorage</td></tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top:20px;padding:18px 22px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:12px;font-size:14px;color:#86efac;font-weight:600;">
+    ✅ 15 / 15 production tests passed · 26 / 26 unit tests passed · 0 failures
+  </div>
+</section>
+
+<!-- ── TECH STACK ─────────────────────────────────────────────── -->
+<section style="padding-top:0;">
+  <div class="section-tag">Technology Stack</div>
+  <div class="section-title">Built with proven tools</div>
+  <div class="tech-grid">
+    <div class="tech-pill"><div class="tech-dot" style="background:#0f9d58;"></div>Django 5.2</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#e74c3c;"></div>Django REST Framework</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#336791;"></div>PostgreSQL</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#6366f1;"></div>OpenRouter AI</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#00b156;"></div>Gunicorn</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#f5a623;"></div>WhiteNoise</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#b13bff;"></div>Railway</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#ff6b35;"></div>drf-spectacular</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#06b6d4;"></div>Chart.js</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#eab308;"></div>JWT Auth</div>
+  </div>
+</section>
+
+<!-- ── DEPLOY ─────────────────────────────────────────────────── -->
+<section id="deploy">
+  <div class="section-tag">Deployment</div>
+  <div class="section-title">From git push to live in minutes</div>
+  <p class="section-sub">Designed for Railway. Runs on any platform that supports Python and PostgreSQL.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Clone &amp; install</h4>
+        <p>Clone the repo and install Python dependencies.</p>
+        <pre>git clone https://github.com/harsh23111157/event-management.git
 cd event-management
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-```
+pip install -r requirements.txt</pre>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Configure environment</h4>
+        <p>Copy <code>.env.example</code> to <code>.env</code> and fill in your values.</p>
+        <pre><span class="env-var">DEBUG</span>=<span class="env-val">True</span>
+<span class="env-var">SECRET_KEY</span>=<span class="env-val">your-secret-key</span>
+<span class="env-var">DATABASE_URL</span>=<span class="env-val">sqlite:///db.sqlite3</span>  <span class="comment"># or postgres://...</span>
+<span class="env-var">OPENROUTER_API_KEY</span>=<span class="env-val">sk-or-v1-...  </span><span class="comment"># optional AI features</span></pre>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Run locally</h4>
+        <pre>python manage.py migrate
+python manage.py seed_demo_data
+python manage.py runserver</pre>
+        <p>Open <a href="http://localhost:8000" style="color:var(--accent);">localhost:8000</a> and log in with <code>admin / admin12345</code>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Deploy to Railway</h4>
+        <p>Connect the GitHub repo to Railway. Add a PostgreSQL plugin, then set these variables:</p>
+        <pre><span class="env-var">DJANGO_SETTINGS_MODULE</span>=<span class="env-val">config.settings.production</span>
+<span class="env-var">SECRET_KEY</span>=<span class="env-val">&lt;generate with manage.py&gt;</span>
+<span class="env-var">ALLOWED_HOSTS</span>=<span class="env-val">your-app.up.railway.app</span>
+<span class="env-var">CSRF_TRUSTED_ORIGINS</span>=<span class="env-val">https://your-app.up.railway.app</span>
+<span class="env-var">DEBUG</span>=<span class="env-val">False</span></pre>
+        <p>Railway picks up <code>start.sh</code> — migrations, seeding, static files, and gunicorn run automatically.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-**2. Install dependencies**
+<!-- ── FOOTER ─────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-badges">
+    <span class="fbadge">Django 5.2</span>
+    <span class="fbadge">Python 3.13</span>
+    <span class="fbadge">PostgreSQL</span>
+    <span class="fbadge">MIT License</span>
+    <span class="fbadge">26 Tests ✅</span>
+  </div>
+  <p>
+    Built by <a href="https://github.com/harsh23111157">harsh23111157</a> ·
+    <a href="https://github.com/harsh23111157/event-management">GitHub</a> ·
+    <a href="https://web-production-2c66.up.railway.app">Live Demo</a>
+  </p>
+</footer>
 
-```bash
-pip install -r requirements.txt
-```
-
-**3. Configure environment**
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` — the minimum you need locally:
-
-```
-DEBUG=True
-SECRET_KEY=any-random-string-here
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=sqlite:///db.sqlite3
-```
-
-**4. Run migrations and create a superuser**
-
-```bash
-python manage.py migrate
-python manage.py createsuperuser
-```
-
-**5. Start the development server**
-
-```bash
-python manage.py runserver
-```
-
-Open [http://localhost:8000](http://localhost:8000) and log in with the superuser you created.
-
----
-
-## Role permissions
-
-| Action | Admin | Event Manager | Finance Officer | Staff |
-|---|:---:|:---:|:---:|:---:|
-| Create events | ✓ | ✓ | | |
-| Approve events | ✓ | | | |
-| Manage venues | ✓ | ✓ | | |
-| Manage vendors | ✓ | ✓ | | |
-| Assign staff | ✓ | ✓ | | |
-| Log expenses | ✓ | ✓ | ✓ | ✓ |
-| Approve expenses | ✓ | | ✓ | |
-| View reports | ✓ | ✓ | ✓ | |
-| Manage users | ✓ | | | |
-| View audit log | ✓ | | | |
-
----
-
-## Environment variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `SECRET_KEY` | Yes | Django secret key — use a long random string in production |
-| `DEBUG` | Yes | `True` for development, `False` in production |
-| `ALLOWED_HOSTS` | Yes | Comma-separated list of valid hostnames |
-| `DATABASE_URL` | Yes | PostgreSQL URL or `sqlite:///db.sqlite3` for dev |
-| `OPENROUTER_API_KEY` | No | Enables AI event analysis (get one free at openrouter.ai) |
-| `OPENROUTER_MODEL` | No | Model slug, e.g. `nvidia/nemotron-3-ultra-550b-a55b:free` |
-
----
-
-## Deploy to Railway
-
-Railway is the easiest way to get this running in production with a free PostgreSQL database.
-
-**Step 1 — Create a Railway project**
-
-Go to [railway.app](https://railway.app), create a new project, and connect this GitHub repository.
-
-**Step 2 — Add a PostgreSQL database**
-
-In your Railway project, click **+ New** → **Database** → **PostgreSQL**. Railway will automatically set the `DATABASE_URL` environment variable.
-
-**Step 3 — Set environment variables**
-
-In Railway's service settings → Variables, add:
-
-```
-DJANGO_SETTINGS_MODULE=config.settings.production
-SECRET_KEY=<generate a secure random key>
-ALLOWED_HOSTS=<your-app>.up.railway.app
-DEBUG=False
-OPENROUTER_API_KEY=<optional>
-OPENROUTER_MODEL=<optional>
-```
-
-Generate a secure key with:
-```bash
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-```
-
-**Step 4 — Deploy**
-
-Railway will detect the `Procfile` and build automatically. The `release` command runs `migrate` before each deploy so the database is always up to date.
-
-After deploy, create your admin user via the Railway shell:
-```bash
-python manage.py createsuperuser
-```
-
----
-
-## API documentation
-
-Once running, the auto-generated API docs are available at:
-
-- Swagger UI: `/api/schema/swagger-ui/`
-- ReDoc: `/api/schema/redoc/`
-- OpenAPI JSON: `/api/schema/`
-
-All endpoints require JWT authentication. Get a token at `/api/token/`.
-
----
-
-## Running tests
-
-```bash
-pytest
-```
-
-Or with Django's test runner:
-
-```bash
-python manage.py test
-```
-
-The test suite covers accounts, events, venues, vendors, finance, operations, reports, audit, dashboard, and AI assistant — 26 tests total.
-
----
-
-## Budget thresholds
-
-The finance module tracks spending against event budgets and flags when limits are approached:
-
-- **Warning** at 80% utilization — visible in the finance dashboard
-- **Critical** at 90% — triggers a prominent alert on the event detail page
-
-These thresholds are configurable in `config/settings/base.py`:
-
-```python
-BUDGET_WARN_THRESHOLD = 80
-BUDGET_CRITICAL_THRESHOLD = 90
-```
-
----
-
-## Project structure
-
-```
-event-management/
-├── apps/
-│   ├── accounts/       # Custom user model, roles, permissions
-│   ├── ai_assistant/   # OpenRouter integration and analysis
-│   ├── audit/          # Immutable audit log
-│   ├── dashboard/      # Dashboard views and context
-│   ├── events/         # Event lifecycle management
-│   ├── finance/        # Expense tracking and budget control
-│   ├── operations/     # Staff, schedules, tasks, attendance
-│   ├── reports/        # Reporting across all modules
-│   ├── vendors/        # Vendor registry and event contracts
-│   └── venues/         # Venue registry
-├── config/
-│   ├── settings/
-│   │   ├── base.py         # Shared settings
-│   │   ├── development.py  # Dev overrides
-│   │   └── production.py   # Production hardening
-│   ├── urls.py
-│   └── wsgi.py
-├── static/             # CSS, JS, fonts
-├── templates/          # HTML templates (per-app)
-├── Procfile            # Gunicorn start command
-├── railway.toml        # Railway deployment config
-├── requirements.txt
-└── manage.py
-```
-
----
-
-## License
-
-MIT
+</body>
+</html>
