@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Attendance & Shifts — EventOps{% endblock %}
+{% block heading %}Attendance & Shift Logs{% endblock %}
+{% block subheading %}Monitor on-site check-ins, presence status, and shift timestamps.{% endblock %}
+
+{% block content %}
+<!-- IF STAFF USER: MY ACTIVE SHIFTS CHECK-IN PANEL -->
+{% if is_staff_member and my_assignments %}
+  <div class="card" style="margin-bottom: 22px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">My Event Shift Check-in</div>
+        <div class="card-subtitle">Perform your on-site check-in / check-out for assigned events</div>
+      </div>
+    </div>
+    <div class="grid cols-3">
+      {% for a in my_assignments %}
+        <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 16px;">
+          <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">{{ a.event.name }}</div>
+          <div style="font-size: 12.5px; color: var(--muted); margin-bottom: 6px;">Role: <strong>{{ a.role }}</strong></div>
+          <div style="font-size: 12px; color: var(--ink-secondary); margin-bottom: 12px;">
+            🕒 {{ a.event.start_date|date:"M d, H:i" }} – {{ a.event.end_date|date:"M d, H:i" }}
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <form action="{% url 'attendance_checkin' a.event.id %}" method="post" style="margin: 0; flex:1;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Check In</button>
+            </form>
+            <form action="{% url 'attendance_checkout' a.event.id %}" method="post" style="margin: 0; flex:1;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm" style="width: 100%;">Check Out</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+<!-- ATTENDANCE LOG TABLE -->
+<div class="table-container">
+  <div style="padding: 16px 20px; border-bottom: 1px solid var(--line);">
+    <div class="card-title">Attendance Records</div>
+  </div>
+  {% if attendances %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Staff Member</th>
+          <th>Event</th>
+          <th>Check-in Timestamp</th>
+          <th>Check-out Timestamp</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for att in attendances %}
+          <tr>
+            <td><strong>{{ att.staff.get_full_name|default:att.staff.username }}</strong></td>
+            <td><a href="{% url 'event_detail' att.event.id %}">{{ att.event.name }}</a></td>
+            <td>{{ att.check_in|date:"M d, Y · H:i:s"|default:"Not Checked In" }}</td>
+            <td>{{ att.check_out|date:"M d, Y · H:i:s"|default:"Active on Shift" }}</td>
+            <td><span class="badge b-{{ att.status|lower }}">{{ att.get_status_display }}</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">⏱</div>
+      <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">No attendance records found</div>
+      <div style="font-size: 13px; color: var(--muted);">Shift records will appear here as staff check in to events.</div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- PAGINATION -->
+{% if is_paginated %}
+  <div style="display: flex; justify-content: center; gap: 8px; margin-top: 20px;">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm">&larr; Previous</a>
+    {% endif %}
+    <span style="padding: 6px 12px; font-weight: 600; font-size: 13px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm">Next &rarr;</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% endblock %}

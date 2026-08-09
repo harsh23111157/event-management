@@ -8,6 +8,7 @@ class Venue(models.Model):
     capacity = models.PositiveIntegerField(default=0)
     contact_person = models.CharField(max_length=120, blank=True)
     contact_phone = models.CharField(max_length=32, blank=True)
+    contact_email = models.EmailField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,23 +1,100 @@
 {% extends "base.html" %}
-{% block title %}{{ form.instance.id|yesno:"Edit task,New task" }} — EventOps{% endblock %}
-{% block heading %}{{ form.instance.id|yesno:"Edit task,New task" }}{% endblock %}
+{% load static %}
+
+{% block title %}{{ form.instance.id|yesno:"Edit Task,New Task" }} — EventOps{% endblock %}
+{% block heading %}
+  {% if is_staff_edit %}Update Assigned Task Progress
+  {% else %}{{ form.instance.id|yesno:"Edit Task Details,Create Operational Task" }}{% endif %}
+{% endblock %}
+{% block subheading %}
+  {% if is_staff_edit %}Update execution status and record notes or blockers for your assigned task.
+  {% else %}Assign tasks to event staff with priority levels, descriptions, and due dates.{% endif %}
+{% endblock %}
+
 {% block content %}
-<form method="post">
-  {% csrf_token %}
-  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
-  <div class="form-row"><label>Title</label>{{ form.title }}</div>
-  <div class="form-row"><label>Description</label>{{ form.description }}</div>
-  <div class="form-grid">
-    <div class="form-row"><label>Assigned to</label>{{ form.assigned_to }}</div>
-    <div class="form-row"><label>Due date</label>{{ form.due_date }}</div>
-    <div class="form-row"><label>Priority</label>{{ form.priority }}</div>
-    <div class="form-row"><label>Status</label>{{ form.status }}</div>
+<div class="form-card">
+  <!-- TASK CONTEXT BANNER -->
+  <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px; margin-bottom: 20px;">
+    <div style="font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Associated Event</div>
+    <div style="font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px;">
+      <a href="{% url 'event_detail' event.id %}">{{ event.name }}</a>
+    </div>
+    {% if is_staff_edit and task %}
+      <div style="margin-top: 8px; font-size: 13px;">
+        <strong>Task:</strong> {{ task.title }}<br>
+        <strong>Priority:</strong> <span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span><br>
+        <strong>Due Date:</strong> {{ task.due_date|date:"M d, Y · H:i" }}<br>
+        {% if task.description %}<strong>Description:</strong> {{ task.description }}{% endif %}
+      </div>
+    {% endif %}
   </div>
-  <div class="form-row"><label>Notes</label>{{ form.notes }}</div>
-  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
-  <div class="actions" style="margin-top:16px">
-    <button type="submit" class="btn btn-primary">Save task</button>
-    <a href="{% url 'task_list' %}" class="btn">Cancel</a>
-  </div>
-</form>
+
+  <form method="post">
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger" style="margin-bottom: 20px;">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    {% if not is_staff_edit %}
+      <div class="form-row">
+        <label class="form-label">Task Title *</label>
+        {{ form.title }}
+        {% if form.title.errors %}<span class="form-error">{{ form.title.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Task Description & Instructions</label>
+        {{ form.description }}
+        {% if form.description.errors %}<span class="form-error">{{ form.description.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Assign To Staff Member</label>
+          {{ form.assigned_to }}
+          <span class="form-help">Only staff assigned to this event appear here.</span>
+          {% if form.assigned_to.errors %}<span class="form-error">{{ form.assigned_to.errors|join:", " }}</span>{% endif %}
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Due Date & Time *</label>
+          {{ form.due_date }}
+          {% if form.due_date.errors %}<span class="form-error">{{ form.due_date.errors|join:", " }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Priority Level *</label>
+          {{ form.priority }}
+          {% if form.priority.errors %}<span class="form-error">{{ form.priority.errors|join:", " }}</span>{% endif %}
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Execution Status *</label>
+          {{ form.status }}
+          {% if form.status.errors %}<span class="form-error">{{ form.status.errors|join:", " }}</span>{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="form-row">
+        <label class="form-label">Execution Status *</label>
+        {{ form.status }}
+        {% if form.status.errors %}<span class="form-error">{{ form.status.errors|join:", " }}</span>{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="form-row">
+      <label class="form-label">Execution Notes / Progress Report</label>
+      {{ form.notes }}
+      {% if form.notes.errors %}<span class="form-error">{{ form.notes.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);">
+      <button type="submit" class="btn btn-primary">Save Task</button>
+      <a href="{% url 'task_list' %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
 {% endblock %}

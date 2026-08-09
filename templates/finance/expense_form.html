@@ -1,20 +1,48 @@
 {% extends "base.html" %}
-{% block title %}New expense — EventOps{% endblock %}
-{% block heading %}New expense{% endblock %}
+{% load static %}
+
+{% block title %}Log Expense — EventOps{% endblock %}
+{% block heading %}Log Operational Expense{% endblock %}
+{% block subheading %}Submit an expenditure request against an assigned event budget.{% endblock %}
+
 {% block content %}
-<form method="post">
-  {% csrf_token %}
-  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
-  <div class="form-row"><label>Event</label>{{ form.event }}</div>
-  <div class="form-row"><label>Description</label>{{ form.description }}</div>
-  <div class="form-grid">
-    <div class="form-row"><label>Category</label>{{ form.category }}</div>
-    <div class="form-row"><label>Amount</label>{{ form.amount }}</div>
-  </div>
-  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
-  <div class="actions" style="margin-top:16px">
-    <button type="submit" class="btn btn-primary">Save expense</button>
-    <a href="{% url 'expense_list' %}" class="btn">Cancel</a>
-  </div>
-</form>
+<div class="form-card">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="form-row">
+      <label class="form-label">Target Event *</label>
+      {{ form.event }}
+      {% if form.event.errors %}<span class="form-error">{{ form.event.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Expense Description *</label>
+      {{ form.description }}
+      {% if form.description.errors %}<span class="form-error">{{ form.description.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Expense Category *</label>
+        {{ form.category }}
+        {% if form.category.errors %}<span class="form-error">{{ form.category.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Amount (₹) *</label>
+        {{ form.amount }}
+        {% if form.amount.errors %}<span class="form-error">{{ form.amount.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);">
+      <button type="submit" class="btn btn-primary">Submit Expense Request</button>
+      <a href="{% url 'expense_list' %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
 {% endblock %}

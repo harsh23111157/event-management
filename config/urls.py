@@ -1,9 +1,11 @@
 """Root URL configuration."""
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic.base import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
+    path("", RedirectView.as_view(url="/dashboard/", permanent=False), name="home"),
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("apps.accounts.urls_api")),
     path("api/v1/", include("apps.events.urls_api")),
@@ -26,6 +28,9 @@ urlpatterns = [
     path("reports/", include("apps.reports.urls")),
     path("audit-logs/", include("apps.audit.urls")),
     path("ai/", include("apps.ai_assistant.urls")),
+    path("assistant/", RedirectView.as_view(url="/ai/", permanent=False)),
+    path("workflow/", RedirectView.as_view(url="/dashboard/workflow/", permanent=False)),
+    path("how-it-works/", RedirectView.as_view(url="/dashboard/workflow/", permanent=False)),
 ]
 
 handler400 = "apps.accounts.views.handler400"

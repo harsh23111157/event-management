@@ -6,7 +6,7 @@ from apps.venues.models import Venue
 class VenueForm(forms.ModelForm):
     class Meta:
         model = Venue
-        fields = ["name", "address", "capacity", "contact_person", "contact_phone", "is_active"]
+        fields = ["name", "address", "capacity", "contact_person", "contact_phone", "contact_email", "is_active"]
         widgets = {"address": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):

@@ -1,31 +1,87 @@
 {% extends "base.html" %}
-{% block title %}Event form — EventOps{% endblock %}
-{% block heading %}{{ form.instance.id|yesno:"Edit event,New event" }}{% endblock %}
+{% load static %}
+
+{% block title %}{{ form.instance.id|yesno:"Edit Event,Create New Event" }} — EventOps{% endblock %}
+{% block heading %}{{ form.instance.id|yesno:"Edit Event,Create New Event" }}{% endblock %}
+{% block subheading %}Define event details, schedule, capacity parameters, and manager assignment.{% endblock %}
+
 {% block content %}
-<form method="post">
-  {% csrf_token %}
-  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
-  <div class="form-row">
-    <label>Name</label>{{ form.name }}
-    {% if form.name.errors %}<div class="error">{{ form.name.errors }}</div>{% endif %}
-  </div>
-  <div class="form-row">
-    <label>Description</label>{{ form.description }}
-  </div>
-  <div class="form-grid">
-    <div class="form-row"><label>Type</label>{{ form.event_type }}</div>
-    <div class="form-row"><label>Venue</label>{{ form.venue }}</div>
-    <div class="form-row"><label>Manager</label>{{ form.manager }}</div>
-    <div class="form-row"><label>Expected attendees</label>{{ form.expected_attendees }}</div>
-    <div class="form-row"><label>Budget</label>{{ form.budget }}</div>
-    <div class="form-row"></div>
-    <div class="form-row"><label>Start date</label>{{ form.start_date }}</div>
-    <div class="form-row"><label>End date</label>{{ form.end_date }}</div>
-  </div>
-  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
-  <div class="actions" style="margin-top:16px">
-    <button type="submit" class="btn btn-primary">Save event</button>
-    <a href="{% url 'event_list' %}" class="btn">Cancel</a>
-  </div>
-</form>
+<div class="form-card">
+  <form method="post">
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger" style="margin-bottom: 20px;">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="form-row">
+      <label class="form-label">Event Name *</label>
+      {{ form.name }}
+      {% if form.name.errors %}<span class="form-error">{{ form.name.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Event Description & Scope</label>
+      {{ form.description }}
+      {% if form.description.errors %}<span class="form-error">{{ form.description.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Event Category / Type *</label>
+        {{ form.event_type }}
+        {% if form.event_type.errors %}<span class="form-error">{{ form.event_type.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Venue Location *</label>
+        {{ form.venue }}
+        {% if form.venue.errors %}<span class="form-error">{{ form.venue.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Assigned Event Manager *</label>
+        {{ form.manager }}
+        {% if form.manager.errors %}<span class="form-error">{{ form.manager.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Expected Attendees Count *</label>
+        {{ form.expected_attendees }}
+        {% if form.expected_attendees.errors %}<span class="form-error">{{ form.expected_attendees.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Allocated Budget (₹) *</label>
+        {{ form.budget }}
+        {% if form.budget.errors %}<span class="form-error">{{ form.budget.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Start Date & Time *</label>
+        {{ form.start_date }}
+        {% if form.start_date.errors %}<span class="form-error">{{ form.start_date.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">End Date & Time *</label>
+        {{ form.end_date }}
+        {% if form.end_date.errors %}<span class="form-error">{{ form.end_date.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);">
+      <button type="submit" class="btn btn-primary">Save Event Details</button>
+      <a href="{% if form.instance.id %}{% url 'event_detail' form.instance.id %}{% else %}{% url 'event_list' %}{% endif %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
 {% endblock %}

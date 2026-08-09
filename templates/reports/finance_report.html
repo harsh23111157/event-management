@@ -1,18 +1,95 @@
 {% extends "base.html" %}
-{% block title %}Finance Report — EventOps{% endblock %}
-{% block heading %}Finance Report{% endblock %}
+{% load static %}
+
+{% block title %}Financials & Budgets Report — EventOps{% endblock %}
+{% block heading %}Financials & Budgets Report{% endblock %}
+{% block subheading %}Audit organizational budget consumption, category allocations, and approval velocity.{% endblock %}
+
 {% block content %}
-<div class="grid cols-4">
-  <div class="stat"><div class="label">Total budget</div><div class="value">{{ report.total_budget|floatformat:0 }}</div></div>
-  <div class="stat success"><div class="label">Approved expenses</div><div class="value">{{ report.approved_expenses|floatformat:0 }}</div></div>
-  <div class="stat warn"><div class="label">Pending ({{ report.pending_count }})</div><div class="value">{{ report.pending_expenses|floatformat:0 }}</div></div>
-  <div class="stat danger"><div class="label">Rejected ({{ report.rejected_count }})</div><div class="value">{{ report.rejected_expenses|floatformat:0 }}</div></div>
+<!-- REPORT NAVIGATION SUB-BAR -->
+<div class="tabs-nav" style="margin-bottom: 20px;">
+  <a href="{% url 'report_events' %}" class="tab-btn">Events & Attendance</a>
+  <a href="{% url 'report_finance' %}" class="tab-btn active">Financials & Budgets</a>
+  <a href="{% url 'report_tasks' %}" class="tab-btn">Tasks & Operations</a>
+  <a href="{% url 'report_vendors' %}" class="tab-btn">Vendors & Suppliers</a>
 </div>
-<div class="grid cols-2" style="margin-top:16px">
-  <div class="stat"><div class="label">Remaining budget</div><div class="value">{{ report.remaining_budget|floatformat:0 }}</div></div>
-  <div class="stat {% if report.utilization_pct >= 90 %}danger{% elif report.utilization_pct >= 80 %}warn{% endif %}">
-    <div class="label">Budget utilization</div><div class="value">{{ report.utilization_pct }}%</div>
-    <div class="progress {% if report.utilization_pct >= 90 %}danger{% elif report.utilization_pct >= 80 %}warn{% else %}success{% endif %}" style="margin-top:8px"><span style="width:{{ report.utilization_pct|floatformat:0 }}%"></span></div>
+
+<!-- FINANCIAL KPIS -->
+<div class="grid cols-4" style="margin-bottom: 20px;">
+  <div class="stat-card">
+    <div class="stat-icon-wrap indigo">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Total Allocated Budget</div>
+      <div class="stat-val">₹{{ report.total_budget|floatformat:0 }}</div>
+      <div class="stat-meta">{{ report.utilization_pct }}% consumed</div>
+    </div>
   </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap emerald">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Approved Spend</div>
+      <div class="stat-val">₹{{ report.approved_expenses|floatformat:0 }}</div>
+      <div class="stat-meta">Verified disbursements</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap amber">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Pending Approval</div>
+      <div class="stat-val">₹{{ report.pending_expenses|floatformat:0 }}</div>
+      <div class="stat-meta">{{ report.pending_count }} requests</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap sky">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Remaining Balance</div>
+      <div class="stat-val">₹{{ report.remaining_budget|floatformat:0 }}</div>
+      <div class="stat-meta">Available funds</div>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY SPEND BREAKDOWN -->
+<div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
+  <div style="padding: 16px 20px; border-bottom: 1px solid var(--line);">
+    <div class="card-title">Approved Spend by Expense Category</div>
+  </div>
+  {% if report.categories %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Expense Category</th>
+          <th>Total Expenditure</th>
+          <th>Approved Items Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat in report.categories %}
+          <tr>
+            <td><strong>{{ cat.category }}</strong></td>
+            <td><strong style="font-size: 15px;">₹{{ cat.total|floatformat:2 }}</strong></td>
+            <td>{{ cat.count }} items</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">💳</div>
+      <div>No approved expense items recorded in this scope.</div>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

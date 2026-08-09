@@ -1,5 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Not found — EventOps{% endblock %}
-{% block heading %}Page not found (404){% endblock %}
-{% block content %}<p>The page you were looking for doesn't exist.</p>
-<a href="{% url 'dashboard' %}" class="btn btn-primary">Back to dashboard</a>{% endblock %}
+{% load static %}
+
+{% block title %}404 Not Found — EventOps{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 40px auto; text-align: center; padding: 40px 30px;">
+  <div style="font-size: 54px; margin-bottom: 8px;">🔍</div>
+  <h1 style="font-size: 26px; font-weight: 800; margin-bottom: 8px;">404 — Page Not Found</h1>
+  <p style="font-size: 14.5px; color: var(--ink-secondary); margin-bottom: 24px;">
+    The page or event resource you requested does not exist or has been moved.
+  </p>
+  <div>
+    <a href="{% url 'dashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+  </div>
+</div>
+{% endblock %}

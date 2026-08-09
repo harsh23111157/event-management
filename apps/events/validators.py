@@ -3,14 +3,10 @@ from django.core.exceptions import ValidationError
 
 from apps.events.models import Event, EventStatus
 
-
 class EventValidationService:
     @staticmethod
-    def validate_for_submission(event: Event) -> list[str]:
-        """Return a list of human-readable validation errors. Empty means valid."""
+    def _validate_common(event: Event) -> list[str]:
         errors: list[str] = []
-        if event.status != EventStatus.DRAFT:
-            errors.append("Only draft events can be submitted.")
         if event.budget is None or event.budget <= 0:
             errors.append("Budget must be greater than zero.")
         if event.expected_attendees is None or event.expected_attendees <= 0:
@@ -26,10 +22,20 @@ class EventValidationService:
         return errors
 
     @staticmethod
+    def validate_for_submission(event: Event) -> list[str]:
+        """Return a list of human-readable validation errors. Empty means valid."""
+        errors: list[str] = []
+        if event.status != EventStatus.DRAFT:
+            errors.append("Only draft events can be submitted.")
+        errors.extend(EventValidationService._validate_common(event))
+        return errors
+
+    @staticmethod
     def validate_for_approval(event: Event) -> list[str]:
-        errors = EventValidationService.validate_for_submission(event)
+        errors: list[str] = []
         if event.status != EventStatus.SUBMITTED:
             errors.append("Only submitted events can be approved.")
+        errors.extend(EventValidationService._validate_common(event))
         if not event.staff_assignments.exists():
             errors.append("Event must have at least one staff member assigned.")
         return errors

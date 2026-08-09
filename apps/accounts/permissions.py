@@ -27,13 +27,20 @@ class IsStaffOrAbove(permissions.BasePermission):
         return bool(u and u.is_authenticated and u.role in (Role.ADMIN, Role.EVENT_MANAGER, Role.STAFF))
 
 
-def is_admin(user) -> bool:
-    return bool(user and user.is_authenticated and user.is_admin)
+def _extract_user(user_or_request):
+    return getattr(user_or_request, "user", user_or_request)
 
 
-def is_event_manager_or_admin(user) -> bool:
-    return bool(user and user.is_authenticated and (user.is_admin or user.is_event_manager))
+def is_admin(user_or_request) -> bool:
+    u = _extract_user(user_or_request)
+    return bool(u and getattr(u, "is_authenticated", False) and getattr(u, "is_admin", False))
 
 
-def is_finance_or_admin(user) -> bool:
-    return bool(user and user.is_authenticated and (user.is_admin or user.is_finance))
+def is_event_manager_or_admin(user_or_request) -> bool:
+    u = _extract_user(user_or_request)
+    return bool(u and getattr(u, "is_authenticated", False) and (getattr(u, "is_admin", False) or getattr(u, "is_event_manager", False)))
+
+
+def is_finance_or_admin(user_or_request) -> bool:
+    u = _extract_user(user_or_request)
+    return bool(u and getattr(u, "is_authenticated", False) and (getattr(u, "is_admin", False) or getattr(u, "is_finance", False)))

@@ -1,22 +1,69 @@
 {% extends "base.html" %}
-{% block title %}Schedule item — EventOps{% endblock %}
-{% block heading %}New schedule item{% endblock %}
+{% load static %}
+
+{% block title %}Add Schedule Item — {{ event.name }}{% endblock %}
+{% block heading %}Add Schedule / Agenda Item{% endblock %}
+{% block subheading %}Define session timestamps, room/location, and lead staff for {{ event.name }}.{% endblock %}
+
 {% block content %}
-<form method="post">
-  {% csrf_token %}
-  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
-  <div class="form-row"><label>Title</label>{{ form.title }}</div>
-  <div class="form-row"><label>Description</label>{{ form.description }}</div>
-  <div class="form-grid">
-    <div class="form-row"><label>Start time</label>{{ form.start_time }}</div>
-    <div class="form-row"><label>End time</label>{{ form.end_time }}</div>
-    <div class="form-row"><label>Location</label>{{ form.location }}</div>
-    <div class="form-row"><label>Responsible staff</label>{{ form.responsible_staff }}</div>
+<div class="form-card">
+  <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px; margin-bottom: 20px;">
+    <div style="font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Target Event</div>
+    <div style="font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px;">
+      <a href="{% url 'event_detail' event.id %}">{{ event.name }}</a>
+    </div>
   </div>
-  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
-  <div class="actions" style="margin-top:16px">
-    <button type="submit" class="btn btn-primary">Save schedule item</button>
-    <a href="{% url 'event_detail' event.id %}" class="btn">Cancel</a>
-  </div>
-</form>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="form-row">
+      <label class="form-label">Session / Agenda Title *</label>
+      {{ form.title }}
+      {% if form.title.errors %}<span class="form-error">{{ form.title.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Description & Agenda Scope</label>
+      {{ form.description }}
+      {% if form.description.errors %}<span class="form-error">{{ form.description.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Start Time *</label>
+        {{ form.start_time }}
+        {% if form.start_time.errors %}<span class="form-error">{{ form.start_time.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">End Time *</label>
+        {{ form.end_time }}
+        {% if form.end_time.errors %}<span class="form-error">{{ form.end_time.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Location / Room Name</label>
+        {{ form.location }}
+        {% if form.location.errors %}<span class="form-error">{{ form.location.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Responsible Staff Member</label>
+        {{ form.responsible_staff }}
+        {% if form.responsible_staff.errors %}<span class="form-error">{{ form.responsible_staff.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);">
+      <button type="submit" class="btn btn-primary">Save Schedule Item</button>
+      <a href="{% url 'event_detail' event.id %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
 {% endblock %}

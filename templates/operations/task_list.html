@@ -1,22 +1,120 @@
 {% extends "base.html" %}
-{% block title %}Tasks — EventOps{% endblock %}
-{% block heading %}Tasks{% endblock %}
+{% load static %}
+
+{% block title %}Operational Tasks — EventOps{% endblock %}
+{% block heading %}{% if is_staff_member %}My Tasks{% else %}Tasks & Operations{% endif %}{% endblock %}
+{% block subheading %}Track task execution, blockers, priority items, and deadlines.{% endblock %}
+
 {% block content %}
-<table class="table">
-  <thead><tr><th>Task</th><th>Event</th><th>Priority</th><th>Status</th><th>Due</th><th>Assignee</th></tr></thead>
-  <tbody>
-  {% for t in tasks %}
-  <tr>
-    <td><a href="{% url 'task_edit' t.id %}">{{ t.title }}</a></td>
-    <td><a href="{% url 'event_detail' t.event.id %}">{{ t.event.name }}</a></td>
-    <td><span class="badge b-{{ t.priority }}">{{ t.get_priority_display }}</span></td>
-    <td><span class="badge b-{{ t.status }}">{{ t.get_status_display }}</span></td>
-    <td>{{ t.due_date|date:"Y-m-d" }}</td>
-    <td>{{ t.assigned_to|default:"—" }}</td>
-  </tr>
-  {% empty %}
-  <tr><td colspan="6" class="empty">No tasks found.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<!-- TASK STATUS PIPELINE CHIPS -->
+<div class="pipeline-bar">
+  <a href="?status=" class="pipeline-chip {% if not current_status %}active{% endif %}">
+    <span>All Tasks</span>
+    <span class="pipeline-count">{{ status_counts.all }}</span>
+  </a>
+  <a href="?status=TODO" class="pipeline-chip {% if current_status == 'TODO' %}active{% endif %}">
+    <span>To Do</span>
+    <span class="pipeline-count">{{ status_counts.TODO }}</span>
+  </a>
+  <a href="?status=IN_PROGRESS" class="pipeline-chip {% if current_status == 'IN_PROGRESS' %}active{% endif %}">
+    <span>In Progress</span>
+    <span class="pipeline-count">{{ status_counts.IN_PROGRESS }}</span>
+  </a>
+  <a href="?status=COMPLETED" class="pipeline-chip {% if current_status == 'COMPLETED' %}active{% endif %}">
+    <span>Completed</span>
+    <span class="pipeline-count">{{ status_counts.COMPLETED }}</span>
+  </a>
+  <a href="?status=BLOCKED" class="pipeline-chip {% if current_status == 'BLOCKED' %}active{% endif %}">
+    <span>Blocked</span>
+    <span class="pipeline-count">{{ status_counts.BLOCKED }}</span>
+  </a>
+</div>
+
+<!-- SEARCH & FILTER BAR -->
+<form method="get" class="filter-bar">
+  {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+  <div class="filter-group">
+    <div class="search-input">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search tasks, events, assignees...">
+    </div>
+    <select name="priority" class="form-control" style="width: auto; padding: 7px 12px;" onchange="this.form.submit()">
+      <option value="">All Priorities</option>
+      {% for val, label in priority_choices %}
+        <option value="{{ val }}" {% if current_priority == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <button type="submit" class="btn btn-sm">Filter</button>
+    {% if search_query or current_priority or current_status %}
+      <a href="{% url 'task_list' %}" class="btn btn-sm" style="color: var(--muted);">Reset</a>
+    {% endif %}
+  </div>
+</form>
+
+<!-- TASKS TABLE -->
+<div class="table-container">
+  {% if tasks %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Task Title</th>
+          <th>Event</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Due Date</th>
+          <th>Assignee</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in tasks %}
+          <tr>
+            <td>
+              <strong>{{ task.title }}</strong>
+              {% if task.description %}
+                <div style="font-size: 12px; color: var(--muted);">{{ task.description|truncatechars:55 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'event_detail' task.event.id %}">{{ task.event.name }}</a>
+            </td>
+            <td><span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+            <td><span class="badge b-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+            <td>
+              <span {% if task.is_overdue %}style="color: var(--danger); font-weight:bold;"{% endif %}>
+                {{ task.due_date|date:"M d, Y · H:i" }}
+              </span>
+            </td>
+            <td>{{ task.assigned_to.get_full_name|default:"Unassigned" }}</td>
+            <td>
+              <a href="{% url 'task_edit' task.id %}" class="btn btn-sm">{% if is_staff_member %}Update{% else %}Edit{% endif %} &rarr;</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">✓</div>
+      <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">No tasks found</div>
+      <div style="font-size: 13px; color: var(--muted);">No operational tasks match your active filter settings.</div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- PAGINATION -->
+{% if is_paginated %}
+  <div style="display: flex; justify-content: center; gap: 8px; margin-top: 20px;">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-sm">&larr; Previous</a>
+    {% endif %}
+    <span style="padding: 6px 12px; font-weight: 600; font-size: 13px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-sm">Next &rarr;</a>
+    {% endif %}
+  </div>
+{% endif %}
+
 {% endblock %}

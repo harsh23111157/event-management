@@ -1,96 +1,888 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}Dashboard — EventOps{% endblock %}
-{% block heading %}Dashboard{% endblock %}
+{% block heading %}
+  {% if role == 'ADMIN' %}Organization Overview
+  {% elif role == 'EVENT_MANAGER' %}Event Manager Dashboard
+  {% elif role == 'STAFF' %}My Operational Workspace
+  {% elif role == 'FINANCE' %}Finance & Budget Dashboard
+  {% else %}Operations Dashboard{% endif %}
+{% endblock %}
+
+{% block subheading %}
+  {% if role == 'ADMIN' %}Real-time operational KPIs, pipeline health, and organization metrics.
+  {% elif role == 'EVENT_MANAGER' %}Welcome back, {{ manager_name }}. Here is the live status of your events.
+  {% elif role == 'STAFF' %}Welcome, {{ staff_name }}. Track your assigned tasks, event shifts, and check-ins.
+  {% elif role == 'FINANCE' %}Track organization budgets, review expense requests, and monitor utilization.
+  {% endif %}
+{% endblock %}
+
+{% block topbar_actions %}
+  {% if can_manage_events %}
+    <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">+ Create Event</a>
+  {% endif %}
+  {% if can_manage_finance %}
+    <a href="{% url 'expense_create' %}" class="btn btn-primary btn-sm">+ Log Expense</a>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
-{% for level,msg in budget_warnings %}
-  <div class="alert alert-{{ level }}">{{ msg }}</div>
-{% endfor %}
+<!-- FILTER BAR -->
+<form method="get" class="filter-bar">
+  <div class="filter-group">
+    <span style="font-weight: 600; font-size: 13px; color: var(--muted);">Filter View:</span>
+    <select name="date_range" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+      <option value="30d" {% if filters.date_range == '30d' %}selected{% endif %}>Next 30 Days</option>
+      <option value="90d" {% if filters.date_range == '90d' %}selected{% endif %}>Next 90 Days</option>
+      <option value="year" {% if filters.date_range == 'year' %}selected{% endif %}>This Year</option>
+      <option value="all" {% if filters.date_range == 'all' %}selected{% endif %}>All Time</option>
+    </select>
 
-<div class="grid cols-4">
-  <div class="stat"><div class="label">Total events</div><div class="value">{{ events.total }}</div></div>
-  <div class="stat"><div class="label">In progress</div><div class="value">{{ events.in_progress }}</div></div>
-  <div class="stat"><div class="label">Completed</div><div class="value">{{ events.completed }}</div></div>
-  <div class="stat"><div class="label">Cancelled</div><div class="value">{{ events.cancelled }}</div></div>
-</div>
+    {% if role != 'STAFF' %}
+      <select name="event_type" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+        <option value="">All Event Types</option>
+        {% for val, label in event_types %}
+          <option value="{{ val }}" {% if filters.event_type == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
 
-<div class="grid cols-4" style="margin-top:16px">
-  <div class="stat"><div class="label">Total tasks</div><div class="value">{{ tasks.total }}</div></div>
-  <div class="stat success"><div class="label">Completed tasks</div><div class="value">{{ tasks.completed }}</div></div>
-  <div class="stat warn"><div class="label">Pending tasks</div><div class="value">{{ tasks.todo }}</div></div>
-  <div class="stat danger"><div class="label">Overdue tasks</div><div class="value">{{ tasks.overdue }}</div></div>
-</div>
+      <select name="venue" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+        <option value="">All Venues</option>
+        {% for v in venues %}
+          <option value="{{ v.id }}" {% if filters.venue == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    {% endif %}
+  </div>
+  {% if filters.date_range or filters.event_type or filters.venue %}
+    <a href="{% url 'dashboard' %}" class="btn btn-sm" style="color: var(--muted);">Reset Filters</a>
+  {% endif %}
+</form>
 
-<div class="grid cols-4" style="margin-top:16px">
-  <div class="stat"><div class="label">Total budget</div><div class="value">{{ finance.total_budget|floatformat:0 }}</div></div>
-  <div class="stat"><div class="label">Approved expenses</div><div class="value">{{ finance.approved_expenses|floatformat:0 }}</div></div>
-  <div class="stat"><div class="label">Remaining budget</div><div class="value">{{ finance.remaining_budget|floatformat:0 }}</div></div>
-  <div class="stat {% if finance.utilization_pct >= 90 %}danger{% elif finance.utilization_pct >= 80 %}warn{% endif %}">
-    <div class="label">Budget utilization</div><div class="value">{{ finance.utilization_pct }}%</div>
-  <div class="progress {% if finance.utilization_pct >= 90 %}danger{% elif finance.utilization_pct >= 80 %}warn{% else %}success{% endif %}" style="margin-top:8px"><span style="width:{{ finance.utilization_pct|floatformat:0 }}%"></span></div>
+<!-- ACTIONABLE ALERTS -->
+{% if alerts %}
+  <div style="margin-bottom: 20px;">
+    {% for alert in alerts %}
+      <div class="alert alert-{{ alert.type }}">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <strong>{{ alert.title }}:</strong>
+          <span>{{ alert.text }}</span>
+        </div>
+        {% if alert.url %}
+          <a href="{{ alert.url }}" class="btn btn-sm" style="background: rgba(255,255,255,0.8); font-weight:700;">Take Action &rarr;</a>
+        {% endif %}
+      </div>
+    {% endfor %}
   </div>
-</div>
+{% endif %}
 
-<div class="grid cols-2" style="margin-top:18px">
-  <div class="card">
-    <div class="section-title">Upcoming events</div>
-    {% if upcoming_events %}
-    <table class="table">
-      <thead><tr><th>Event</th><th>Start</th><th>Status</th><th>Venue</th></tr></thead>
-      <tbody>
-      {% for e in upcoming_events %}
-      <tr><td><a href="{% url 'event_detail' e.id %}">{{ e.name }}</a></td>
-          <td>{{ e.start_date|date:"Y-m-d" }}</td>
-          <td><span class="badge b-{{ e.status }}">{{ e.get_status_display }}</span></td>
-          <td>{{ e.venue|default:"—" }}</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}<p class="empty">No upcoming events.</p>{% endif %}
-  </div>
-  <div class="card">
-    <div class="section-title">Pending approvals</div>
-    {% if pending_approvals %}
-    <table class="table">
-      <thead><tr><th>Event</th><th>Manager</th><th>Budget</th></tr></thead>
-      <tbody>
-      {% for e in pending_approvals %}
-      <tr><td><a href="{% url 'event_detail' e.id %}">{{ e.name }}</a></td>
-          <td>{{ e.manager|default:"—" }}</td>
-          <td>{{ e.budget|floatformat:0 }}</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}<p class="empty">No events awaiting approval.</p>{% endif %}
-  </div>
-</div>
+<!-- ============================================================= -->
+<!-- 1. ADMIN DASHBOARD VIEW -->
+<!-- ============================================================= -->
+{% if role == 'ADMIN' %}
+  <!-- STAT CARDS: EVENTS -->
+  <div class="grid cols-4" style="margin-bottom: 18px;">
+    <div class="stat-card">
+      <div class="stat-icon-wrap indigo">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Total Events</div>
+        <div class="stat-val">{{ summary.total_events }}</div>
+        <div class="stat-meta">{{ summary.upcoming_events }} upcoming</div>
+      </div>
+    </div>
 
-<div class="grid cols-2" style="margin-top:18px">
-  <div class="card">
-    <div class="section-title">Critical tasks</div>
-    {% if critical_tasks %}
-    <table class="table">
-      <thead><tr><th>Task</th><th>Event</th><th>Due</th><th>Assignee</th></tr></thead>
-      <tbody>
-      {% for t in critical_tasks %}
-      <tr><td>{{ t.title }}</td><td><a href="{% url 'event_detail' t.event.id %}">{{ t.event.name }}</a></td>
-          <td>{{ t.due_date|date:"Y-m-d" }}</td><td>{{ t.assigned_to|default:"—" }}</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}<p class="empty">No open critical tasks.</p>{% endif %}
+    <div class="stat-card">
+      <div class="stat-icon-wrap amber">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-val">{{ summary.in_progress_events }}</div>
+        <div class="stat-meta">{{ summary.pending_event_approvals }} pending review</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap emerald">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Completed</div>
+        <div class="stat-val">{{ summary.completed_events }}</div>
+        <div class="stat-meta">{{ summary.active_staff }} staff active</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap rose">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Overdue Tasks</div>
+        <div class="stat-val">{{ summary.overdue_tasks }}</div>
+        <div class="stat-meta">{{ summary.critical_tasks }} critical open</div>
+      </div>
+    </div>
   </div>
-  <div class="card">
-    <div class="section-title">Recent activity</div>
-    {% if recent_activity %}
-    <table class="table">
-      <thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead>
-      <tbody>
-      {% for log in recent_activity %}
-      <tr><td>{{ log.timestamp|date:"M d, H:i" }}</td><td>{{ log.user|default:"—" }}</td><td>{{ log.action }}</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% else %}<p class="empty">No recent activity.</p>{% endif %}
+
+  <!-- STAT CARDS: FINANCIAL HEALTH -->
+  <div class="card" style="margin-bottom: 22px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Financial Summary & Budget Health</div>
+        <div class="card-subtitle">Organization-wide total budgets vs approved expenses</div>
+      </div>
+      <span class="badge {% if summary.utilization_pct >= 90 %}badge-blocked{% elif summary.utilization_pct >= 80 %}badge-warn{% else %}badge-ready{% endif %}">
+        {{ summary.utilization_pct }}% Utilized
+      </span>
+    </div>
+    <div class="grid cols-4" style="gap: 12px; margin-bottom: 12px;">
+      <div>
+        <div class="stat-label">Total Allocated Budget</div>
+        <div style="font-size: 20px; font-weight: 800;">₹{{ summary.total_budget|floatformat:0 }}</div>
+      </div>
+      <div>
+        <div class="stat-label">Approved Expenses</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--primary);">₹{{ summary.approved_expenses|floatformat:0 }}</div>
+      </div>
+      <div>
+        <div class="stat-label">Remaining Balance</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--success);">₹{{ summary.remaining_budget|floatformat:0 }}</div>
+      </div>
+      <div>
+        <div class="stat-label">Pending Expenses</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--warn);">{{ summary.pending_expense_approvals }} Requests</div>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill {% if summary.utilization_pct >= 90 %}danger{% elif summary.utilization_pct >= 80 %}warn{% else %}success{% endif %}" style="width: {{ summary.utilization_pct }}%;"></div>
+    </div>
   </div>
-</div>
+
+  <!-- CHARTS ROW -->
+  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Event Pipeline by Status</div>
+        <div class="card-subtitle">Live status distribution across all events</div>
+      </div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="chartAdminStatus"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Monthly Event Volume</div>
+        <div class="card-subtitle">Scheduled events timeline</div>
+      </div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="chartAdminMonthly"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Task Completion & Execution</div>
+        <div class="card-subtitle">Breakdown by current operational task status</div>
+      </div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="chartAdminTasks"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Venue Utilization</div>
+        <div class="card-subtitle">Events booked per venue location</div>
+      </div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="chartAdminVenues"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLES ROW: PENDING APPROVALS & CRITICAL TASKS -->
+  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="card-title">Pending Event Approvals</div>
+          <div class="card-subtitle">{{ pending_approvals|length }} events awaiting review</div>
+        </div>
+        <a href="{% url 'event_list' %}?status=SUBMITTED" class="btn btn-sm">View All &rarr;</a>
+      </div>
+      {% if pending_approvals %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Manager</th>
+              <th>Budget</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ev in pending_approvals %}
+              <tr>
+                <td>
+                  <strong><a href="{% url 'event_detail' ev.id %}">{{ ev.name }}</a></strong>
+                  <div style="font-size: 11.5px; color: var(--muted);">{{ ev.start_date|date:"M d, Y" }}</div>
+                </td>
+                <td>{{ ev.manager.get_full_name|default:ev.manager.username }}</td>
+                <td>₹{{ ev.budget|floatformat:0 }}</td>
+                <td>
+                  <a href="{% url 'event_detail' ev.id %}" class="btn btn-primary btn-sm">Review</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">✓</div>
+          <div>No pending event approvals. All caught up!</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="card-title">Critical Operational Tasks</div>
+          <div class="card-subtitle">Urgent items requiring attention</div>
+        </div>
+        <a href="{% url 'task_list' %}?priority=CRITICAL" class="btn btn-sm">View All &rarr;</a>
+      </div>
+      {% if critical_tasks %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Event</th>
+              <th>Assignee</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in critical_tasks %}
+              <tr>
+                <td>
+                  <strong>{{ task.title }}</strong>
+                  <div style="font-size: 11.5px; color: var(--danger);">Due: {{ task.due_date|date:"M d, H:i" }}</div>
+                </td>
+                <td><a href="{% url 'event_detail' task.event.id %}">{{ task.event.name|truncatechars:20 }}</a></td>
+                <td>{{ task.assigned_to.get_full_name|default:"Unassigned" }}</td>
+                <td><span class="badge b-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">✓</div>
+          <div>No critical tasks pending resolution.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+
+<!-- ============================================================= -->
+<!-- 2. EVENT MANAGER DASHBOARD VIEW -->
+<!-- ============================================================= -->
+{% elif role == 'EVENT_MANAGER' %}
+  <!-- TOP STAT CARDS -->
+  <div class="grid cols-4" style="margin-bottom: 18px;">
+    <div class="stat-card">
+      <div class="stat-icon-wrap indigo">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">My Events</div>
+        <div class="stat-val">{{ summary.total_events }}</div>
+        <div class="stat-meta">{{ summary.upcoming_events }} upcoming</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap emerald">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Tasks Completed</div>
+        <div class="stat-val">{{ summary.completed_tasks }}</div>
+        <div class="stat-meta">of {{ summary.total_tasks }} total tasks</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap sky">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">My Events Budget</div>
+        <div class="stat-val">₹{{ summary.total_budget|floatformat:0 }}</div>
+        <div class="stat-meta">{{ summary.utilization_pct }}% spent</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap rose">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Overdue Tasks</div>
+        <div class="stat-val">{{ summary.overdue_tasks }}</div>
+        <div class="stat-meta">{{ summary.critical_tasks }} critical</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">My Events Pipeline</div>
+        <div class="card-subtitle">Status breakdown of events you manage</div>
+      </div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="chartManagerStatus"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Task Completion Rate</div>
+        <div class="card-subtitle">Task statuses across all your events</div>
+      </div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="chartManagerTasks"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANAGER TABLES: UPCOMING EVENTS & URGENT TASKS -->
+  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="card-title">My Upcoming Events</div>
+          <div class="card-subtitle">Next events scheduled on your calendar</div>
+        </div>
+        <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">+ New Event</a>
+      </div>
+      {% if upcoming_events %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Venue</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ev in upcoming_events %}
+              <tr>
+                <td>
+                  <strong><a href="{% url 'event_detail' ev.id %}">{{ ev.name }}</a></strong>
+                  <div style="font-size: 11.5px; color: var(--muted);">{{ ev.start_date|date:"M d, Y" }}</div>
+                </td>
+                <td>{{ ev.venue.name|default:"TBD" }}</td>
+                <td><span class="badge b-{{ ev.status|lower }}">{{ ev.get_status_display }}</span></td>
+                <td><a href="{% url 'event_detail' ev.id %}" class="btn btn-sm">Manage</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📅</div>
+          <div>No upcoming events. Click "+ New Event" to create your next event!</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="card-title">Urgent Tasks & Deadlines</div>
+          <div class="card-subtitle">Overdue and critical tasks in your events</div>
+        </div>
+        <a href="{% url 'task_list' %}" class="btn btn-sm">All Tasks &rarr;</a>
+      </div>
+      {% if overdue_tasks or critical_tasks %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Assignee</th>
+              <th>Priority</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in overdue_tasks %}
+              <tr>
+                <td>
+                  <strong>{{ task.title }}</strong>
+                  <div style="font-size: 11.5px; color: var(--danger);">Due: {{ task.due_date|date:"M d" }}</div>
+                </td>
+                <td>{{ task.assigned_to.get_full_name|default:"Unassigned" }}</td>
+                <td><span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+                <td><span class="badge b-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">✓</div>
+          <div>No urgent task blockers on your events.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+
+<!-- ============================================================= -->
+<!-- 3. STAFF DASHBOARD VIEW (Action Workspace) -->
+<!-- ============================================================= -->
+{% elif role == 'STAFF' %}
+  <!-- TOP STAT CARDS -->
+  <div class="grid cols-4" style="margin-bottom: 18px;">
+    <div class="stat-card">
+      <div class="stat-icon-wrap indigo">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Assigned Events</div>
+        <div class="stat-val">{{ summary.assigned_events }}</div>
+        <div class="stat-meta">Active assignments</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap amber">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Pending Tasks</div>
+        <div class="stat-val">{{ summary.pending_tasks }}</div>
+        <div class="stat-meta">{{ summary.critical_tasks }} critical</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap emerald">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Completed Tasks</div>
+        <div class="stat-val">{{ summary.completed_tasks }}</div>
+        <div class="stat-meta">of {{ summary.total_tasks }} assigned</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap rose">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Overdue Tasks</div>
+        <div class="stat-val">{{ summary.overdue_tasks }}</div>
+        <div class="stat-meta">Action needed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAFF ACTION CARDS: MY EVENT CHECK-INS -->
+  <div class="card" style="margin-bottom: 22px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">My Event Assignments & On-Site Check-in</div>
+        <div class="card-subtitle">Check-in / Check-out directly for scheduled event shifts</div>
+      </div>
+    </div>
+    {% if my_assignments %}
+      <div class="grid cols-3">
+        {% for a in my_assignments %}
+          <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 16px;">
+            <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">{{ a.event.name }}</div>
+            <div style="font-size: 12.5px; color: var(--muted); margin-bottom: 8px;">Role: <strong>{{ a.role }}</strong></div>
+            <div style="font-size: 12px; color: var(--ink-secondary); margin-bottom: 12px;">
+              📍 {{ a.event.venue.name|default:"Venue TBD" }}<br>
+              🕒 {{ a.event.start_date|date:"M d, H:i" }} – {{ a.event.end_date|date:"M d, H:i" }}
+            </div>
+            
+            <!-- Check in / out action -->
+            {% with att=active_attendance|dictsort:a.event.id %}
+              <div style="display: flex; gap: 8px;">
+                <form action="{% url 'attendance_checkin' a.event.id %}" method="post" style="margin: 0; flex:1;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Check In</button>
+                </form>
+                <form action="{% url 'attendance_checkout' a.event.id %}" method="post" style="margin: 0; flex:1;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm" style="width: 100%;">Check Out</button>
+                </form>
+              </div>
+            {% endwith %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div>You currently have no active event staff assignments.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- STAFF ACTION TABLE: MY TODAY'S TASKS -->
+  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">My Assigned Operational Tasks</div>
+        <div class="card-subtitle">Click "Update" to change status or record notes</div>
+      </div>
+      <a href="{% url 'task_list' %}" class="btn btn-sm">View All My Tasks &rarr;</a>
+    </div>
+    {% if today_tasks %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Task Title</th>
+            <th>Event</th>
+            <th>Priority</th>
+            <th>Due Date</th>
+            <th>Current Status</th>
+            <th>Quick Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in today_tasks %}
+            <tr>
+              <td>
+                <strong>{{ task.title }}</strong>
+                {% if task.description %}<div style="font-size: 12px; color: var(--muted);">{{ task.description|truncatechars:45 }}</div>{% endif %}
+              </td>
+              <td><a href="{% url 'event_detail' task.event.id %}">{{ task.event.name }}</a></td>
+              <td><span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+              <td>
+                <span {% if task.is_overdue %}style="color: var(--danger); font-weight:bold;"{% endif %}>
+                  {{ task.due_date|date:"M d, H:i" }}
+                </span>
+              </td>
+              <td><span class="badge b-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+              <td>
+                <a href="{% url 'task_edit' task.id %}" class="btn btn-primary btn-sm">Update Status &rarr;</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">✓</div>
+        <div>All assigned tasks are completed. Great job!</div>
+      </div>
+    {% endif %}
+  </div>
+
+
+<!-- ============================================================= -->
+<!-- 4. FINANCE DASHBOARD VIEW -->
+<!-- ============================================================= -->
+{% elif role == 'FINANCE' %}
+  <!-- TOP STAT CARDS -->
+  <div class="grid cols-4" style="margin-bottom: 18px;">
+    <div class="stat-card">
+      <div class="stat-icon-wrap indigo">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Total Budgets</div>
+        <div class="stat-val">₹{{ summary.total_budget|floatformat:0 }}</div>
+        <div class="stat-meta">Across active events</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap emerald">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Approved Spend</div>
+        <div class="stat-val">₹{{ summary.approved_expenses|floatformat:0 }}</div>
+        <div class="stat-meta">{{ summary.utilization_pct }}% utilization</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap amber">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Pending Approval</div>
+        <div class="stat-val">₹{{ summary.pending_approvals_sum|floatformat:0 }}</div>
+        <div class="stat-meta">{{ summary.pending_approvals_count }} requests waiting</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap sky">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label">Remaining Balance</div>
+        <div class="stat-val">₹{{ summary.remaining_budget|floatformat:0 }}</div>
+        <div class="stat-meta">Net available funds</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Approved Spend by Category</div>
+        <div class="card-subtitle">Distribution of approved expenditure</div>
+      </div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="chartFinanceCategories"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Monthly Expenditure Trend</div>
+        <div class="card-subtitle">Approved expense volume over time</div>
+      </div>
+      <div style="height: 240px; position: relative;">
+        <canvas id="chartFinanceMonthly"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- PENDING APPROVALS QUEUE -->
+  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">Expense Approval Queue</div>
+        <div class="card-subtitle">{{ pending_approvals_queue|length }} operational expense requests awaiting decision</div>
+      </div>
+      <a href="{% url 'expense_list' %}?status=PENDING" class="btn btn-sm">Full Queue &rarr;</a>
+    </div>
+    {% if pending_approvals_queue %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Expense Item</th>
+            <th>Event</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Submitted By</th>
+            <th>Decision Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for exp in pending_approvals_queue %}
+            <tr>
+              <td>
+                <strong>{{ exp.description }}</strong>
+                <div style="font-size: 11.5px; color: var(--muted);">{{ exp.created_at|date:"M d, Y H:i" }}</div>
+              </td>
+              <td><a href="{% url 'event_detail' exp.event.id %}">{{ exp.event.name }}</a></td>
+              <td><span class="badge b-medium">{{ exp.get_category_display }}</span></td>
+              <td><strong style="font-size: 15px;">₹{{ exp.amount|floatformat:2 }}</strong></td>
+              <td>{{ exp.created_by.get_full_name|default:exp.created_by.username }}</td>
+              <td>
+                <div style="display: flex; gap: 6px;">
+                  <form action="{% url 'expense_approve' exp.id %}" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                  </form>
+                  <button type="button" class="btn btn-danger btn-sm" onclick="openRejectModal('{{ exp.id }}', '{{ exp.description|escapejs }}')">Reject</button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">✓</div>
+        <div>No pending expense approvals. All requests processed!</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- REJECTION REASON MODAL -->
+  <div id="rejectModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:var(--r-lg); width:460px; max-width:90vw; padding:24px; box-shadow:var(--shadow-lg);">
+      <h3 style="margin-bottom:8px;">Reject Expense Request</h3>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:14px;" id="rejectModalDesc"></p>
+      <form id="rejectModalForm" method="post">
+        {% csrf_token %}
+        <div class="form-row">
+          <label class="form-label">Rejection Reason (Required):</label>
+          <textarea name="reason" class="form-control" rows="3" required placeholder="State why this expense request cannot be approved..."></textarea>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button type="button" class="btn btn-sm" onclick="closeRejectModal()">Cancel</button>
+          <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openRejectModal(id, desc) {
+      document.getElementById('rejectModalDesc').innerText = 'Expense: ' + desc;
+      document.getElementById('rejectModalForm').action = '/expenses/' + id + '/reject/';
+      document.getElementById('rejectModal').style.display = 'flex';
+    }
+    function closeRejectModal() {
+      document.getElementById('rejectModal').style.display = 'none';
+    }
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script id="charts-data" type="application/json">
+  {{ charts_json|default:"{}"|safe }}
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    let chartsData = {};
+    const chartsDataEl = document.getElementById('charts-data');
+    if (chartsDataEl && chartsDataEl.textContent.trim()) {
+      try {
+        chartsData = JSON.parse(chartsDataEl.textContent);
+      } catch (e) {
+        console.error('Error parsing charts data:', e);
+      }
+    }
+
+    // Helper options
+    const doughnutOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, font: { family: 'Inter', size: 12 } } }
+      },
+      cutout: '68%'
+    };
+
+    const barOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter' } } },
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter' } } }
+      }
+    };
+
+    // 1. Admin Charts
+    if (document.getElementById('chartAdminStatus') && chartsData.status) {
+      new Chart(document.getElementById('chartAdminStatus'), {
+        type: 'doughnut',
+        data: {
+          labels: chartsData.status.labels,
+          datasets: [{ data: chartsData.status.data, backgroundColor: chartsData.status.colors }]
+        },
+        options: doughnutOpts
+      });
+    }
+
+    if (document.getElementById('chartAdminMonthly') && chartsData.monthly) {
+      new Chart(document.getElementById('chartAdminMonthly'), {
+        type: 'bar',
+        data: {
+          labels: chartsData.monthly.labels,
+          datasets: [{ label: 'Events', data: chartsData.monthly.data, backgroundColor: '#4f46e5', borderRadius: 6 }]
+        },
+        options: barOpts
+      });
+    }
+
+    if (document.getElementById('chartAdminTasks') && chartsData.tasks) {
+      new Chart(document.getElementById('chartAdminTasks'), {
+        type: 'doughnut',
+        data: {
+          labels: chartsData.tasks.labels,
+          datasets: [{ data: chartsData.tasks.data, backgroundColor: chartsData.tasks.colors }]
+        },
+        options: doughnutOpts
+      });
+    }
+
+    if (document.getElementById('chartAdminVenues') && chartsData.venues) {
+      new Chart(document.getElementById('chartAdminVenues'), {
+        type: 'bar',
+        data: {
+          labels: chartsData.venues.labels,
+          datasets: [{ label: 'Events Booked', data: chartsData.venues.data, backgroundColor: '#0284c7', borderRadius: 6 }]
+        },
+        options: { ...barOpts, indexAxis: 'y' }
+      });
+    }
+
+    // 2. Manager Charts
+    if (document.getElementById('chartManagerStatus') && chartsData.status) {
+      new Chart(document.getElementById('chartManagerStatus'), {
+        type: 'doughnut',
+        data: {
+          labels: chartsData.status.labels,
+          datasets: [{ data: chartsData.status.data, backgroundColor: chartsData.status.colors }]
+        },
+        options: doughnutOpts
+      });
+    }
+
+    if (document.getElementById('chartManagerTasks') && chartsData.tasks) {
+      new Chart(document.getElementById('chartManagerTasks'), {
+        type: 'doughnut',
+        data: {
+          labels: chartsData.tasks.labels,
+          datasets: [{ data: chartsData.tasks.data, backgroundColor: chartsData.tasks.colors }]
+        },
+        options: doughnutOpts
+      });
+    }
+
+    // 3. Finance Charts
+    if (document.getElementById('chartFinanceCategories') && chartsData.expense_categories) {
+      new Chart(document.getElementById('chartFinanceCategories'), {
+        type: 'doughnut',
+        data: {
+          labels: chartsData.expense_categories.labels,
+          datasets: [{ data: chartsData.expense_categories.data, backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#8b5cf6', '#0284c7', '#ef4444'] }]
+        },
+        options: doughnutOpts
+      });
+    }
+
+    if (document.getElementById('chartFinanceMonthly') && chartsData.monthly_expenses) {
+      new Chart(document.getElementById('chartFinanceMonthly'), {
+        type: 'line',
+        data: {
+          labels: chartsData.monthly_expenses.labels,
+          datasets: [{ label: 'Approved (₹)', data: chartsData.monthly_expenses.data, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }]
+        },
+        options: barOpts
+      });
+    }
+  });
+</script>
 {% endblock %}

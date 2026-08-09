@@ -1,17 +1,65 @@
 {% extends "base.html" %}
-{% block title %}Vendor Report — EventOps{% endblock %}
-{% block heading %}Vendor Report{% endblock %}
+{% load static %}
+
+{% block title %}Vendors & Suppliers Report — EventOps{% endblock %}
+{% block heading %}Vendors & Suppliers Analytics{% endblock %}
+{% block subheading %}Audit vendor contracts, total engagement value, service distribution, and fulfillment status.{% endblock %}
+
 {% block content %}
-<div class="grid cols-4">
-  <div class="stat"><div class="label">Total vendors</div><div class="value">{{ report.total_vendors }}</div></div>
-  <div class="stat success"><div class="label">Active vendors</div><div class="value">{{ report.active_vendors }}</div></div>
-  <div class="stat"><div class="label">Total assignments</div><div class="value">{{ report.total }}</div></div>
-  <div class="stat"><div class="label">Total contract value</div><div class="value">{{ report.total_value|floatformat:0 }}</div></div>
+<!-- REPORT NAVIGATION SUB-BAR -->
+<div class="tabs-nav" style="margin-bottom: 20px;">
+  <a href="{% url 'report_events' %}" class="tab-btn">Events & Attendance</a>
+  {% if is_admin or is_finance or is_event_manager %}
+    <a href="{% url 'report_finance' %}" class="tab-btn">Financials & Budgets</a>
+  {% endif %}
+  <a href="{% url 'report_tasks' %}" class="tab-btn">Tasks & Operations</a>
+  <a href="{% url 'report_vendors' %}" class="tab-btn active">Vendors & Suppliers</a>
 </div>
-<div class="grid cols-4" style="margin-top:16px">
-  <div class="stat"><div class="label">Planned</div><div class="value">{{ report.planned }}</div></div>
-  <div class="stat success"><div class="label">Confirmed</div><div class="value">{{ report.confirmed }}</div></div>
-  <div class="stat success"><div class="label">Completed</div><div class="value">{{ report.completed }}</div></div>
-  <div class="stat danger"><div class="label">Cancelled</div><div class="value">{{ report.cancelled }}</div></div>
+
+<!-- VENDOR KPIS -->
+<div class="grid cols-4" style="margin-bottom: 20px;">
+  <div class="stat-card">
+    <div class="stat-icon-wrap indigo">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Total Verified Vendors</div>
+      <div class="stat-val">{{ report.total_vendors }}</div>
+      <div class="stat-meta">{{ report.active_vendors }} active</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap emerald">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Total Contract Value</div>
+      <div class="stat-val">₹{{ report.total_value|floatformat:0 }}</div>
+      <div class="stat-meta">{{ report.total }} total assignments</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap sky">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Confirmed Contracts</div>
+      <div class="stat-val">{{ report.confirmed }}</div>
+      <div class="stat-meta">{{ report.completed }} completed</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap amber">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Planned / In Discussion</div>
+      <div class="stat-val">{{ report.planned }}</div>
+      <div class="stat-meta">{{ report.cancelled }} cancelled</div>
+    </div>
+  </div>
 </div>
 {% endblock %}

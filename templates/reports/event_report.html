@@ -1,17 +1,104 @@
 {% extends "base.html" %}
-{% block title %}Event Report — EventOps{% endblock %}
-{% block heading %}Event Status Report{% endblock %}
+{% load static %}
+
+{% block title %}Events & Attendance Report — EventOps{% endblock %}
+{% block heading %}Events & Attendance Analytics{% endblock %}
+{% block subheading %}Comprehensive lifecycle distribution, attendance rates, and operational pipeline status.{% endblock %}
+
 {% block content %}
-<div class="grid cols-4">
-  <div class="stat"><div class="label">Total events</div><div class="value">{{ report.total }}</div></div>
-  <div class="stat"><div class="label">Draft</div><div class="value">{{ report.draft }}</div></div>
-  <div class="stat"><div class="label">Submitted</div><div class="value">{{ report.submitted }}</div></div>
-  <div class="stat success"><div class="label">Approved</div><div class="value">{{ report.approved }}</div></div>
+<!-- REPORT NAVIGATION SUB-BAR -->
+<div class="tabs-nav" style="margin-bottom: 20px;">
+  <a href="{% url 'report_events' %}" class="tab-btn active">Events & Attendance</a>
+  {% if is_admin or is_finance or is_event_manager %}
+    <a href="{% url 'report_finance' %}" class="tab-btn">Financials & Budgets</a>
+  {% endif %}
+  <a href="{% url 'report_tasks' %}" class="tab-btn">Tasks & Operations</a>
+  <a href="{% url 'report_vendors' %}" class="tab-btn">Vendors & Suppliers</a>
 </div>
-<div class="grid cols-4" style="margin-top:16px">
-  <div class="stat warn"><div class="label">In progress</div><div class="value">{{ report.in_progress }}</div></div>
-  <div class="stat success"><div class="label">Completed</div><div class="value">{{ report.completed }}</div></div>
-  <div class="stat danger"><div class="label">Cancelled</div><div class="value">{{ report.cancelled }}</div></div>
-  <div class="stat danger"><div class="label">Rejected</div><div class="value">{{ report.rejected }}</div></div>
+
+<!-- EVENT PIPELINE AGGREGATE STATS -->
+<div class="grid cols-4" style="margin-bottom: 20px;">
+  <div class="stat-card">
+    <div class="stat-icon-wrap indigo">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Total Events Evaluated</div>
+      <div class="stat-val">{{ report.total }}</div>
+      <div class="stat-meta">In your permission scope</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap emerald">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Approved & Active</div>
+      <div class="stat-val">{{ report.approved }}</div>
+      <div class="stat-meta">{{ report.in_progress }} in progress</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap sky">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Completed Successfully</div>
+      <div class="stat-val">{{ report.completed }}</div>
+      <div class="stat-meta">Finalized events</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap amber">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Pending / Revision</div>
+      <div class="stat-val">{{ report.submitted }}</div>
+      <div class="stat-meta">{{ report.rejected }} returned</div>
+    </div>
+  </div>
+</div>
+
+<!-- BREAKDOWN CARDS -->
+<div class="grid cols-2" style="margin-bottom: 22px;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Event Status Lifecycle Breakdown</div>
+    </div>
+    <table class="table">
+      <thead><tr><th>Status</th><th>Count</th><th>Share</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-draft">Draft</span></td><td><strong>{{ report.draft }}</strong></td><td>{{ report.draft|default:0 }} / {{ report.total|default:1 }}</td></tr>
+        <tr><td><span class="badge b-submitted">Submitted</span></td><td><strong>{{ report.submitted }}</strong></td><td>{{ report.submitted|default:0 }} / {{ report.total|default:1 }}</td></tr>
+        <tr><td><span class="badge b-approved">Approved</span></td><td><strong>{{ report.approved }}</strong></td><td>{{ report.approved|default:0 }} / {{ report.total|default:1 }}</td></tr>
+        <tr><td><span class="badge b-in_progress">In Progress</span></td><td><strong>{{ report.in_progress }}</strong></td><td>{{ report.in_progress|default:0 }} / {{ report.total|default:1 }}</td></tr>
+        <tr><td><span class="badge b-completed">Completed</span></td><td><strong>{{ report.completed }}</strong></td><td>{{ report.completed|default:0 }} / {{ report.total|default:1 }}</td></tr>
+        <tr><td><span class="badge b-cancelled">Cancelled</span></td><td><strong>{{ report.cancelled }}</strong></td><td>{{ report.cancelled|default:0 }} / {{ report.total|default:1 }}</td></tr>
+        <tr><td><span class="badge b-rejected">Needs Revision</span></td><td><strong>{{ report.rejected }}</strong></td><td>{{ report.rejected|default:0 }} / {{ report.total|default:1 }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">On-Site Attendance Distribution</div>
+    </div>
+    <table class="table">
+      <thead><tr><th>Attendance Status</th><th>Count</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-present">Present</span></td><td><strong style="font-size:16px;">{{ attendance.present|default:0 }}</strong></td></tr>
+        <tr><td><span class="badge b-late">Late Check-in</span></td><td><strong style="font-size:16px;">{{ attendance.late|default:0 }}</strong></td></tr>
+        <tr><td><span class="badge b-absent">Absent / Unreported</span></td><td><strong style="font-size:16px;">{{ attendance.absent|default:0 }}</strong></td></tr>
+        <tr style="font-weight: bold; background: #f8fafc;">
+          <td>Total Shift Attendances</td>
+          <td><strong style="font-size:16px;">{{ attendance.total|default:0 }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

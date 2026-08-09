@@ -1,0 +1,1255 @@
+{% extends "base.html" %}
+{% block title %}Workflow & Architecture Guide — EventOps{% endblock %}
+{% block heading %}System Workflow & Role Architecture{% endblock %}
+{% block subheading %}Comprehensive interactive visual guide to EventOps end-to-end lifecycle, operational workflows, and permissions.{% endblock %}
+
+{% block content %}
+<style>
+  /* -------------------------------------------------------------
+     WORKFLOW GUIDE STYLES
+  ------------------------------------------------------------- */
+  .guide-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%);
+    color: #ffffff;
+    border-radius: var(--r-xl);
+    padding: 32px 36px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+  }
+  .guide-hero::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(0,0,0,0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .guide-hero h1 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+  }
+  .guide-hero p {
+    font-size: 14px;
+    color: #cbd5e1;
+    max-width: 780px;
+    line-height: 1.6;
+    margin: 0 0 20px 0;
+  }
+  .guide-quick-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .guide-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+  }
+  .guide-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
+
+  /* SECTION CARDS */
+  .section-block {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: var(--r-xl);
+    padding: 26px 30px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .section-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line-light);
+  }
+  .section-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-badge-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .section-badge-icon.indigo { background: #eef2ff; color: #4f46e5; }
+  .section-badge-icon.emerald { background: #ecfdf5; color: #059669; }
+  .section-badge-icon.amber { background: #fffbeb; color: #d97706; }
+  .section-badge-icon.purple { background: #f5f3ff; color: #7c3aed; }
+  .section-badge-icon.blue { background: #e0f2fe; color: #0284c7; }
+
+  .section-heading-text {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .section-subheading-text {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* -------------------------------------------------------------
+     1. ROLE TABS & JOURNEYS
+  ------------------------------------------------------------- */
+  .role-tabs-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--line);
+    padding-bottom: 2px;
+  }
+  .role-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -4px;
+    transition: all 0.2s ease;
+    border-radius: 6px 6px 0 0;
+  }
+  .role-tab-btn:hover {
+    color: var(--ink);
+    background: var(--soft);
+  }
+  .role-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: #eef2ff;
+  }
+  .role-tab-btn.active.ADMIN { color: #8b5cf6; border-bottom-color: #8b5cf6; background: #f5f3ff; }
+  .role-tab-btn.active.EVENT_MANAGER { color: #0284c7; border-bottom-color: #0284c7; background: #f0f9ff; }
+  .role-tab-btn.active.FINANCE { color: #059669; border-bottom-color: #059669; background: #ecfdf5; }
+  .role-tab-btn.active.STAFF { color: #d97706; border-bottom-color: #d97706; background: #fffbeb; }
+
+  .role-journey-panel {
+    display: none;
+    animation: fadeIn 0.25s ease-in-out;
+  }
+  .role-journey-panel.active {
+    display: block;
+  }
+
+  .role-overview-card {
+    border-radius: var(--r-lg);
+    padding: 20px 24px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    border: 1px solid transparent;
+  }
+  .role-overview-card.ADMIN { background: #fbf9ff; border-color: #e9d5ff; }
+  .role-overview-card.EVENT_MANAGER { background: #f0f9ff; border-color: #bae6fd; }
+  .role-overview-card.FINANCE { background: #f0fdf4; border-color: #bbf7d0; }
+  .role-overview-card.STAFF { background: #fffbeb; border-color: #fde68a; }
+
+  .role-step-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 992px) {
+    .role-step-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .role-step-grid { grid-template-columns: 1fr; }
+  }
+
+  .role-step-box {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 16px 18px;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .role-step-box:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .role-step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .role-step-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .role-step-desc {
+    font-size: 12.5px;
+    color: var(--ink-secondary);
+    line-height: 1.45;
+  }
+
+  /* -------------------------------------------------------------
+     2. INTERACTIVE 6-STAGE LIFECYCLE PIPELINE
+  ------------------------------------------------------------- */
+  .pipeline-track {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 1024px) {
+    .pipeline-track { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .pipeline-track { grid-template-columns: 1fr; }
+  }
+
+  .stage-card {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: var(--r-lg);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    position: relative;
+  }
+  .stage-card:hover {
+    border-color: var(--primary);
+    background: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .stage-card.active {
+    background: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+  .stage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .stage-pill {
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 12px;
+    background: #e2e8f0;
+    color: #475569;
+  }
+  .stage-card.active .stage-pill { background: var(--primary-light); color: var(--primary); }
+  .stage-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .stage-status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .stage-detail-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--r-lg);
+    padding: 22px 26px;
+    margin-top: 14px;
+    animation: fadeIn 0.2s ease;
+  }
+  .stage-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 860px) {
+    .stage-detail-grid { grid-template-columns: 1fr; }
+  }
+
+  .stage-sub-col {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 16px 18px;
+  }
+  .stage-sub-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stage-sub-list {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 12.5px;
+    color: var(--ink-secondary);
+    line-height: 1.6;
+  }
+
+  /* -------------------------------------------------------------
+     3. INTERACTIVE ARCHITECTURE / DATAFLOW DIAGRAM
+  ------------------------------------------------------------- */
+  .diagram-container {
+    background: #0f172a;
+    border-radius: var(--r-lg);
+    padding: 28px 24px;
+    color: #f8fafc;
+    position: relative;
+    overflow-x: auto;
+  }
+  .diagram-flow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 860px;
+    gap: 16px;
+    position: relative;
+  }
+  .diagram-node {
+    background: #1e293b;
+    border: 2px solid #334155;
+    border-radius: var(--r);
+    padding: 16px 18px;
+    width: 170px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+  }
+  .diagram-node:hover, .diagram-node.active {
+    border-color: #6366f1;
+    background: #272740;
+    transform: scale(1.04);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  }
+  .diagram-node-icon { font-size: 22px; margin-bottom: 6px; }
+  .diagram-node-title { font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 2px; }
+  .diagram-node-subtitle { font-size: 11px; color: #94a3b8; }
+  
+  .diagram-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .node-inspector {
+    margin-top: 20px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: var(--r);
+    padding: 16px 20px;
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+
+  /* -------------------------------------------------------------
+     4. STATE MACHINE
+  ------------------------------------------------------------- */
+  .state-flow-grid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px;
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    margin-bottom: 20px;
+  }
+  .state-pill-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .state-transition-arrow {
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  /* -------------------------------------------------------------
+     5. CAPABILITIES MATRIX
+  ------------------------------------------------------------- */
+  .matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  .matrix-table th {
+    background: #f8fafc;
+    color: var(--muted);
+    font-weight: 700;
+    padding: 10px 14px;
+    border-bottom: 2px solid var(--line);
+    text-align: center;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .matrix-table th:first-child { text-align: left; }
+  .matrix-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-light);
+    text-align: center;
+  }
+  .matrix-table td:first-child {
+    text-align: left;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .matrix-table tr:hover td {
+    background: #fbfcfe;
+  }
+  .check-full { color: #10b981; font-weight: 700; }
+  .check-assigned { color: #f59e0b; font-weight: 600; font-size: 12px; }
+  .check-view { color: #0284c7; font-weight: 600; font-size: 12px; }
+  .check-none { color: #cbd5e1; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<!-- HERO HEADER -->
+<div class="guide-hero">
+  <h1>EventOps System Workflow & Architecture Guide</h1>
+  <p>
+    Welcome to EventOps. This interactive guide walks through every step of the event lifecycle, role-based responsibilities, governance gates, and AI risk monitoring. Click any role or lifecycle stage below to explore!
+  </p>
+  <div class="guide-quick-nav">
+    <a href="#role-journeys" class="guide-nav-btn" onclick="scrollToId('role-journeys')">🎯 Role Workflows</a>
+    <a href="#lifecycle-pipeline" class="guide-nav-btn" onclick="scrollToId('lifecycle-pipeline')">🔄 6-Stage Lifecycle</a>
+    <a href="#system-architecture" class="guide-nav-btn" onclick="scrollToId('system-architecture')">📊 Architecture Diagram</a>
+    <a href="#state-machine" class="guide-nav-btn" onclick="scrollToId('state-machine')">🔀 Status State Machine</a>
+    <a href="#permissions-matrix" class="guide-nav-btn" onclick="scrollToId('permissions-matrix')">🔐 Capabilities Matrix</a>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- 1. INTERACTIVE ROLE-BASED JOURNEYS -->
+<!-- ============================================================= -->
+<div class="section-block" id="role-journeys">
+  <div class="section-block-header">
+    <div class="section-title-wrap">
+      <div class="section-badge-icon indigo">🎯</div>
+      <div>
+        <div class="section-heading-text">Role-Based Operational Journeys</div>
+        <div class="section-subheading-text">Select your role to explore your personalized daily workflow, permissions, and direct actions.</div>
+      </div>
+    </div>
+    <span class="badge b-submitted" style="font-size:12px">Your Logged-In Role: <strong>{{ current_role }}</strong></span>
+  </div>
+
+  <!-- ROLE TABS -->
+  <div class="role-tabs-bar">
+    <button type="button" class="role-tab-btn ADMIN {% if current_role == 'ADMIN' or not current_role %}active{% endif %}" onclick="switchRoleTab('ADMIN')">
+      👑 Organization Admin
+    </button>
+    <button type="button" class="role-tab-btn EVENT_MANAGER {% if current_role == 'EVENT_MANAGER' %}active{% endif %}" onclick="switchRoleTab('EVENT_MANAGER')">
+      🎯 Event Manager
+    </button>
+    <button type="button" class="role-tab-btn FINANCE {% if current_role == 'FINANCE' %}active{% endif %}" onclick="switchRoleTab('FINANCE')">
+      💰 Finance & Budget Officer
+    </button>
+    <button type="button" class="role-tab-btn STAFF {% if current_role == 'STAFF' %}active{% endif %}" onclick="switchRoleTab('STAFF')">
+      📋 Operational Staff
+    </button>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="role-journey-panel ADMIN {% if current_role == 'ADMIN' or not current_role %}active{% endif %}" id="panel-ADMIN">
+    <div class="role-overview-card ADMIN">
+      <div style="font-size:32px">👑</div>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#6b21a8;margin-bottom:4px">Administrator — Executive Governance & Full Control</div>
+        <div style="font-size:13.5px;color:#475569;line-height:1.5">
+          Admins hold 360° governance over the organization: approving new event proposals, managing user accounts and RBAC access, overseeing high-value financial expenditures, and monitoring AI risk flags across all operations.
+        </div>
+      </div>
+    </div>
+
+    <div class="role-step-grid">
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#8b5cf6">1</div>
+        <div class="role-step-title">Review & Approve Events</div>
+        <div class="role-step-desc">Inspect incoming event proposals in the approval queue. Verify venue capacity, requested budgets, and operational schedules before approving.</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#8b5cf6">2</div>
+        <div class="role-step-title">User & Role Management</div>
+        <div class="role-step-desc">Create staff, managers, and finance users. Assign or revoke permissions and maintain organizational compliance.</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#8b5cf6">3</div>
+        <div class="role-step-title">Expense & Budget Governance</div>
+        <div class="role-step-desc">Approve or reject high-value expense submissions and track organization-wide budget utilization against warning thresholds.</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#8b5cf6">4</div>
+        <div class="role-step-title">AI Copilot & Audit Trail</div>
+        <div class="role-step-desc">Run holistic AI operational risk analyses and review immutable audit log entries for all state changes.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <a href="{% url 'dashboard' %}" class="btn btn-primary btn-sm">📊 Open Admin Dashboard</a>
+      <a href="{% url 'event_list' %}?status=SUBMITTED" class="btn btn-sm">Review Pending Events &rarr;</a>
+      <a href="{% url 'ai_assistant' %}" class="btn btn-sm">🤖 AI Operations Advisor &rarr;</a>
+      {% if is_admin %}<a href="{% url 'users' %}" class="btn btn-sm">👥 User Management &rarr;</a>{% endif %}
+    </div>
+  </div>
+
+  <!-- EVENT MANAGER PANEL -->
+  <div class="role-journey-panel EVENT_MANAGER {% if current_role == 'EVENT_MANAGER' %}active{% endif %}" id="panel-EVENT_MANAGER">
+    <div class="role-overview-card EVENT_MANAGER">
+      <div style="font-size:32px">🎯</div>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#0369a1;margin-bottom:4px">Event Manager — End-to-End Event Orchestration</div>
+        <div style="font-size:13.5px;color:#475569;line-height:1.5">
+          Event Managers design, schedule, and lead events from conception to completion. They book venues, coordinate vendors, break work into assigned tasks, and monitor live attendee check-ins.
+        </div>
+      </div>
+    </div>
+
+    <div class="role-step-grid">
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#0284c7">1</div>
+        <div class="role-step-title">Create & Submit Event</div>
+        <div class="role-step-desc">Select an active venue, specify attendee capacity, assign initial budget, and submit the proposal for Admin approval.</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#0284c7">2</div>
+        <div class="role-step-title">Assemble Team & Vendors</div>
+        <div class="role-step-desc">Assign qualified staff members to operational roles and link contracted vendors (catering, A/V, security, staging).</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#0284c7">3</div>
+        <div class="role-step-title">Dispatch Tasks & Schedule</div>
+        <div class="role-step-desc">Create structured timeline milestones and assign tasks with priority tags (CRITICAL, HIGH, MEDIUM, LOW).</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#0284c7">4</div>
+        <div class="role-step-title">Live Day-Of Coordination</div>
+        <div class="role-step-desc">Monitor staff attendance check-ins, record expenses, resolve blockers, and transition the event to Completed.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">+ Create New Event</a>
+      <a href="{% url 'event_list' %}" class="btn btn-sm">My Events Pipeline &rarr;</a>
+      <a href="{% url 'task_list' %}" class="btn btn-sm">Task Operations Hub &rarr;</a>
+      <a href="{% url 'attendance_list' %}" class="btn btn-sm">Attendance Register &rarr;</a>
+    </div>
+  </div>
+
+  <!-- FINANCE PANEL -->
+  <div class="role-journey-panel FINANCE {% if current_role == 'FINANCE' %}active{% endif %}" id="panel-FINANCE">
+    <div class="role-overview-card FINANCE">
+      <div style="font-size:32px">💰</div>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#047857;margin-bottom:4px">Finance Officer — Budget Health & Expense Auditing</div>
+        <div style="font-size:13.5px;color:#475569;line-height:1.5">
+          Finance Officers protect organizational capital: verifying expense receipts, reviewing expense requests, auditing category allocations (Catering, Logistics, Venue, Marketing), and enforcing budget limits.
+        </div>
+      </div>
+    </div>
+
+    <div class="role-step-grid">
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#059669">1</div>
+        <div class="role-step-title">Monitor Budget Thresholds</div>
+        <div class="role-step-desc">Track real-time spend across events. System automatically alerts when budgets reach 80% (Warning) and 90% (Critical).</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#059669">2</div>
+        <div class="role-step-title">Process Expense Queue</div>
+        <div class="role-step-desc">Review submitted expense claims with uploaded receipts, verify vendor invoices, and mark items as APPROVED or REJECTED.</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#059669">3</div>
+        <div class="role-step-title">Vendor Cost Auditing</div>
+        <div class="role-step-desc">Cross-check vendor contracted amounts against actual logged expenditures to prevent cost overruns.</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#059669">4</div>
+        <div class="role-step-title">Financial Reconciliation</div>
+        <div class="role-step-desc">Generate finance analytics, export category breakdown reports, and close post-event financial books.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <a href="{% url 'expense_list' %}?status=PENDING" class="btn btn-primary btn-sm">💸 Pending Approvals Queue</a>
+      <a href="{% url 'expense_create' %}" class="btn btn-sm">+ Log New Expense</a>
+      <a href="{% url 'report_finance' %}" class="btn btn-sm">📊 Finance Analytics Report &rarr;</a>
+    </div>
+  </div>
+
+  <!-- STAFF PANEL -->
+  <div class="role-journey-panel STAFF {% if current_role == 'STAFF' %}active{% endif %}" id="panel-STAFF">
+    <div class="role-overview-card STAFF">
+      <div style="font-size:32px">📋</div>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#b45309;margin-bottom:4px">Staff Member — Operational Execution & Check-ins</div>
+        <div style="font-size:13.5px;color:#475569;line-height:1.5">
+          Staff members are on the ground: executing assigned operational checklists, checking in for event shifts on time, resolving critical tasks, and reporting live updates.
+        </div>
+      </div>
+    </div>
+
+    <div class="role-step-grid">
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#d97706">1</div>
+        <div class="role-step-title">View Assigned Shifts</div>
+        <div class="role-step-desc">Check upcoming event assignments, dates, designated venues, and your assigned operational role (e.g. Lead Coordinator, Tech Support).</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#d97706">2</div>
+        <div class="role-step-title">Check In for Event</div>
+        <div class="role-step-desc">Mark your attendance status (PRESENT / LATE) on event day to log accurate operational staffing records.</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#d97706">3</div>
+        <div class="role-step-title">Execute Task Checklists</div>
+        <div class="role-step-desc">Review your prioritized task checklist. Update task statuses from PENDING &rarr; IN_PROGRESS &rarr; COMPLETED.</div>
+      </div>
+      <div class="role-step-box">
+        <div class="role-step-num" style="background:#d97706">4</div>
+        <div class="role-step-title">Submit Out-of-Pocket Spend</div>
+        <div class="role-step-desc">Submit on-site emergency expense requests with attached receipts for rapid Manager/Finance reimbursement.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <a href="{% url 'task_list' %}" class="btn btn-primary btn-sm">📋 My Assigned Tasks</a>
+      <a href="{% url 'attendance_list' %}" class="btn btn-sm">My Attendance Records &rarr;</a>
+      <a href="{% url 'expense_create' %}" class="btn btn-sm">+ Submit Expense Claim &rarr;</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- 2. INTERACTIVE 6-STAGE LIFECYCLE PIPELINE -->
+<!-- ============================================================= -->
+<div class="section-block" id="lifecycle-pipeline">
+  <div class="section-block-header">
+    <div class="section-title-wrap">
+      <div class="section-badge-icon emerald">🔄</div>
+      <div>
+        <div class="section-heading-text">6-Stage Operational Event Lifecycle</div>
+        <div class="section-subheading-text">Click any stage below to inspect the key milestones, governance rules, and actions involved.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pipeline-track">
+    <div class="stage-card active" id="stage-card-1" onclick="selectStage(1)">
+      <div class="stage-header">
+        <span class="stage-pill">Stage 1</span>
+        <span style="font-size:16px">📝</span>
+      </div>
+      <div class="stage-name">Planning & Scope</div>
+      <div class="stage-status-badge">Status: <code>DRAFT</code></div>
+    </div>
+
+    <div class="stage-card" id="stage-card-2" onclick="selectStage(2)">
+      <div class="stage-header">
+        <span class="stage-pill">Stage 2</span>
+        <span style="font-size:16px">🛡️</span>
+      </div>
+      <div class="stage-name">Governance Review</div>
+      <div class="stage-status-badge">Status: <code>SUBMITTED</code></div>
+    </div>
+
+    <div class="stage-card" id="stage-card-3" onclick="selectStage(3)">
+      <div class="stage-header">
+        <span class="stage-pill">Stage 3</span>
+        <span style="font-size:16px">🤝</span>
+      </div>
+      <div class="stage-name">Logistics & Setup</div>
+      <div class="stage-status-badge">Status: <code>APPROVED</code></div>
+    </div>
+
+    <div class="stage-card" id="stage-card-4" onclick="selectStage(4)">
+      <div class="stage-header">
+        <span class="stage-pill">Stage 4</span>
+        <span style="font-size:16px">⚡</span>
+      </div>
+      <div class="stage-name">Live Execution</div>
+      <div class="stage-status-badge">Status: <code>IN_PROGRESS</code></div>
+    </div>
+
+    <div class="stage-card" id="stage-card-5" onclick="selectStage(5)">
+      <div class="stage-header">
+        <span class="stage-pill">Stage 5</span>
+        <span style="font-size:16px">💳</span>
+      </div>
+      <div class="stage-name">Financial Audit</div>
+      <div class="stage-status-badge">Expense Monitoring</div>
+    </div>
+
+    <div class="stage-card" id="stage-card-6" onclick="selectStage(6)">
+      <div class="stage-header">
+        <span class="stage-pill">Stage 6</span>
+        <span style="font-size:16px">🤖</span>
+      </div>
+      <div class="stage-name">AI Review & Close</div>
+      <div class="stage-status-badge">Status: <code>COMPLETED</code></div>
+    </div>
+  </div>
+
+  <!-- STAGE DETAIL CONTAINERS -->
+  <div class="stage-detail-box" id="stage-detail-1">
+    <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span class="badge b-draft">STAGE 1</span> Planning & Venue Allocation (Status: Draft)
+    </div>
+    <div class="stage-detail-grid">
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🎯 Key Actions</div>
+        <ul class="stage-sub-list">
+          <li>Create event with Title, Type, and Target Dates.</li>
+          <li>Assign Venue and validate attendee capacity vs expected guests.</li>
+          <li>Propose estimated budget and assign accountable Event Manager.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">👥 Roles Involved</div>
+        <ul class="stage-sub-list">
+          <li><strong>Event Manager</strong>: Creator & Lead Author.</li>
+          <li><strong>Admin</strong>: Initial creator (optional).</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🔒 System Rules</div>
+        <ul class="stage-sub-list">
+          <li>Expected attendees cannot exceed selected venue capacity.</li>
+          <li>End date must be greater than or equal to start date.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail-box" id="stage-detail-2" style="display:none">
+    <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span class="badge b-submitted">STAGE 2</span> Governance & Approval Gate (Status: Submitted &rarr; Approved)
+    </div>
+    <div class="stage-detail-grid">
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🎯 Key Actions</div>
+        <ul class="stage-sub-list">
+          <li>Manager clicks "Submit for Review" moving state from <code>DRAFT</code> &rarr; <code>SUBMITTED</code>.</li>
+          <li>Admin reviews budget feasibility, venue availability, and timeline.</li>
+          <li>Admin clicks <strong>Approve</strong> or <strong>Reject with Reason</strong>.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">👥 Roles Involved</div>
+        <ul class="stage-sub-list">
+          <li><strong>Organization Admin</strong>: Sole authority for formal approval.</li>
+          <li><strong>Event Manager</strong>: Receives feedback/rejection notes if revisions needed.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🔒 System Rules</div>
+        <ul class="stage-sub-list">
+          <li>Tasks and expenses cannot be executed until event is formally APPROVED.</li>
+          <li>Rejections generate an actionable notification alert in Manager dashboard.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail-box" id="stage-detail-3" style="display:none">
+    <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span class="badge b-approved">STAGE 3</span> Team Logistics & Vendor Contracting (Status: Approved)
+    </div>
+    <div class="stage-detail-grid">
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🎯 Key Actions</div>
+        <ul class="stage-sub-list">
+          <li>Assign Staff Members with designated roles (Tech Support, Greeter, Coordinator).</li>
+          <li>Link Verified Vendors (Catering, Security, A/V, Decor) with contracted amounts.</li>
+          <li>Dispatch prioritized work breakdown tasks with due dates.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">👥 Roles Involved</div>
+        <ul class="stage-sub-list">
+          <li><strong>Event Manager</strong>: Team & Vendor coordinator.</li>
+          <li><strong>Staff</strong>: Receives notification of assigned tasks & shifts.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🔒 System Rules</div>
+        <ul class="stage-sub-list">
+          <li>Tasks flagged as <code>CRITICAL</code> are highlighted on executive dashboards.</li>
+          <li>Vendor assignments track agreed contract amounts for budget cross-checking.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail-box" id="stage-detail-4" style="display:none">
+    <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span class="badge b-in_progress">STAGE 4</span> Live Execution & Attendance Check-in (Status: In Progress)
+    </div>
+    <div class="stage-detail-grid">
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🎯 Key Actions</div>
+        <ul class="stage-sub-list">
+          <li>Event transitions to <code>IN_PROGRESS</code> on event launch day.</li>
+          <li>Staff check in at the venue (recorded as <code>PRESENT</code> or <code>LATE</code>).</li>
+          <li>Real-time task progression: staff mark items <code>COMPLETED</code>.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">👥 Roles Involved</div>
+        <ul class="stage-sub-list">
+          <li><strong>Staff</strong>: Real-time on-site task completion & attendance.</li>
+          <li><strong>Event Manager</strong>: Live floor coordinator.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🔒 System Rules</div>
+        <ul class="stage-sub-list">
+          <li>Overdue tasks automatically trigger warnings in task list and executive feeds.</li>
+          <li>Attendance logs record exact timestamps for payroll and shift auditing.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail-box" id="stage-detail-5" style="display:none">
+    <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span class="badge b-medium">STAGE 5</span> Continuous Expense Auditing & Budget Control
+    </div>
+    <div class="stage-detail-grid">
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🎯 Key Actions</div>
+        <ul class="stage-sub-list">
+          <li>Log operational expenses with category (Venue, Catering, Travel, Marketing).</li>
+          <li>Attach vendor invoices, payment slips, and receipt documentation.</li>
+          <li>Finance or Admin reviews and approves expense reimbursement claims.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">👥 Roles Involved</div>
+        <ul class="stage-sub-list">
+          <li><strong>Finance Officer / Admin</strong>: Review & Approval authority.</li>
+          <li><strong>Managers & Staff</strong>: Expense claimants.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🔒 System Rules</div>
+        <ul class="stage-sub-list">
+          <li><strong>80% Utilization</strong>: System triggers Amber warning badge.</li>
+          <li><strong>90% Utilization</strong>: System triggers Critical Rose warning banner.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail-box" id="stage-detail-6" style="display:none">
+    <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span class="badge b-completed">STAGE 6</span> AI Copilot Analysis & Post-Event Reconciliation (Status: Completed)
+    </div>
+    <div class="stage-detail-grid">
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🎯 Key Actions</div>
+        <ul class="stage-sub-list">
+          <li>Manager or Admin marks event <code>COMPLETED</code> after closure.</li>
+          <li>Run <strong>AI Copilot</strong> for automated risk assessment & reconciliation checklist.</li>
+          <li>Generate comprehensive Event, Task, Vendor, and Financial Analytics Reports.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">👥 Roles Involved</div>
+        <ul class="stage-sub-list">
+          <li><strong>AI Copilot (OpenRouter LLM)</strong>: Automated auditor.</li>
+          <li><strong>All Stakeholders</strong>: Review final analytics and lessons learned.</li>
+        </ul>
+      </div>
+      <div class="stage-sub-col">
+        <div class="stage-sub-title">🔒 System Rules</div>
+        <ul class="stage-sub-list">
+          <li>Audit logs permanently store full chronological history of all updates.</li>
+          <li>Completed events remain archived and searchable for historical benchmarking.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- 3. INTERACTIVE SYSTEM ARCHITECTURE & DATAFLOW DIAGRAM -->
+<!-- ============================================================= -->
+<div class="section-block" id="system-architecture">
+  <div class="section-block-header">
+    <div class="section-title-wrap">
+      <div class="section-badge-icon purple">📊</div>
+      <div>
+        <div class="section-heading-text">Interactive System Architecture & Dataflow</div>
+        <div class="section-subheading-text">Visual representation of how data flows across EventOps subsystems. Click any node to inspect details.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-flow">
+      <!-- NODE 1 -->
+      <div class="diagram-node active" id="dnode-1" onclick="inspectNode(1)">
+        <div class="diagram-node-icon">🏛️</div>
+        <div class="diagram-node-title">1. Event Hub</div>
+        <div class="diagram-node-subtitle">Venues & Scope</div>
+      </div>
+
+      <div class="diagram-arrow">&rarr;</div>
+
+      <!-- NODE 2 -->
+      <div class="diagram-node" id="dnode-2" onclick="inspectNode(2)">
+        <div class="diagram-node-icon">🛡️</div>
+        <div class="diagram-node-title">2. Governance</div>
+        <div class="diagram-node-subtitle">Admin Approval</div>
+      </div>
+
+      <div class="diagram-arrow">&rarr;</div>
+
+      <!-- NODE 3 -->
+      <div class="diagram-node" id="dnode-3" onclick="inspectNode(3)">
+        <div class="diagram-node-icon">⚙️</div>
+        <div class="diagram-node-title">3. Ops Dispatch</div>
+        <div class="diagram-node-subtitle">Tasks, Staff, Vendors</div>
+      </div>
+
+      <div class="diagram-arrow">&rarr;</div>
+
+      <!-- NODE 4 -->
+      <div class="diagram-node" id="dnode-4" onclick="inspectNode(4)">
+        <div class="diagram-node-icon">📍</div>
+        <div class="diagram-node-title">4. Live Attendance</div>
+        <div class="diagram-node-subtitle">Check-in Logs</div>
+      </div>
+
+      <div class="diagram-arrow">&rarr;</div>
+
+      <!-- NODE 5 -->
+      <div class="diagram-node" id="dnode-5" onclick="inspectNode(5)">
+        <div class="diagram-node-icon">💳</div>
+        <div class="diagram-node-title">5. Finance Core</div>
+        <div class="diagram-node-subtitle">Budgets & Spend</div>
+      </div>
+
+      <div class="diagram-arrow">&rarr;</div>
+
+      <!-- NODE 6 -->
+      <div class="diagram-node" id="dnode-6" onclick="inspectNode(6)">
+        <div class="diagram-node-icon">🤖</div>
+        <div class="diagram-node-title">6. AI & Analytics</div>
+        <div class="diagram-node-subtitle">Copilot & Audit Logs</div>
+      </div>
+    </div>
+
+    <!-- INSPECTOR CALLOUT -->
+    <div class="node-inspector" id="node-inspector-text">
+      <strong>🏛️ Node 1: Event Hub & Venue Allocation:</strong> The foundational entity of EventOps. Event records store core metadata, date spans, venue associations, capacity limits, and manager accountability.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- 4. EVENT STATUS STATE MACHINE -->
+<!-- ============================================================= -->
+<div class="section-block" id="state-machine">
+  <div class="section-block-header">
+    <div class="section-title-wrap">
+      <div class="section-badge-icon amber">🔀</div>
+      <div>
+        <div class="section-heading-text">Event Status State Machine</div>
+        <div class="section-subheading-text">Allowed status transitions and governance validation gates.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="state-flow-grid">
+    <div class="state-pill-node">
+      <span class="badge b-draft" style="font-size:13px;padding:6px 14px">DRAFT</span>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Created by Manager</span>
+    </div>
+
+    <div class="state-transition-arrow">&rarr;</div>
+
+    <div class="state-pill-node">
+      <span class="badge b-submitted" style="font-size:13px;padding:6px 14px">SUBMITTED</span>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Awaiting Admin</span>
+    </div>
+
+    <div class="state-transition-arrow">&rarr;</div>
+
+    <div class="state-pill-node">
+      <span class="badge b-approved" style="font-size:13px;padding:6px 14px">APPROVED</span>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Admin Authorized</span>
+    </div>
+
+    <div class="state-transition-arrow">&rarr;</div>
+
+    <div class="state-pill-node">
+      <span class="badge b-in_progress" style="font-size:13px;padding:6px 14px">IN_PROGRESS</span>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Live Execution</span>
+    </div>
+
+    <div class="state-transition-arrow">&rarr;</div>
+
+    <div class="state-pill-node">
+      <span class="badge b-completed" style="font-size:13px;padding:6px 14px">COMPLETED</span>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Reconciled & Closed</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:13px">
+    <div style="background:#fef2f2;border:1px solid #fecdd3;border-radius:var(--r);padding:14px 18px">
+      <strong style="color:#b91c1c;display:flex;align-items:center;gap:6px">
+        <span class="badge b-rejected">REJECTED Branch</span> Needs Revision
+      </strong>
+      <div style="color:#475569;margin-top:6px;line-height:1.4">
+        If an event proposal lacks budget details or exceeds venue capacity, the Admin can mark it <code>REJECTED</code> with feedback. The Manager modifies details and resubmits back to <code>SUBMITTED</code>.
+      </div>
+    </div>
+
+    <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:var(--r);padding:14px 18px">
+      <strong style="color:#475569;display:flex;align-items:center;gap:6px">
+        <span class="badge b-cancelled">CANCELLED Branch</span> Terminal State
+      </strong>
+      <div style="color:#475569;margin-top:6px;line-height:1.4">
+        If an event is called off before or during execution, authorized managers or admins mark it <code>CANCELLED</code>. All pending tasks are archived and final balance calculations freeze.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- 5. CAPABILITIES & PERMISSIONS MATRIX -->
+<!-- ============================================================= -->
+<div class="section-block" id="permissions-matrix">
+  <div class="section-block-header">
+    <div class="section-title-wrap">
+      <div class="section-badge-icon blue">🔐</div>
+      <div>
+        <div class="section-heading-text">Role Capabilities & Permissions Matrix</div>
+        <div class="section-subheading-text">Granular permission breakdown across all platform modules.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="overflow-x:auto">
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>Platform Capability / Module</th>
+          <th style="color:#8b5cf6">👑 Admin</th>
+          <th style="color:#0284c7">🎯 Event Manager</th>
+          <th style="color:#059669">💰 Finance</th>
+          <th style="color:#d97706">📋 Staff</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Create & Edit Event Proposals</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-view">👁️ View</span></td>
+          <td><span class="check-assigned">Assigned Only</span></td>
+        </tr>
+        <tr>
+          <td>Approve / Reject Event Proposals</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-none">—</span></td>
+          <td><span class="check-none">—</span></td>
+          <td><span class="check-none">—</span></td>
+        </tr>
+        <tr>
+          <td>Manage Venues & Capacities</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-view">👁️ View</span></td>
+          <td><span class="check-view">👁️ View</span></td>
+        </tr>
+        <tr>
+          <td>Contract & Rate Vendors</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-view">👁️ View</span></td>
+          <td><span class="check-view">👁️ View</span></td>
+        </tr>
+        <tr>
+          <td>Create & Assign Tasks to Staff</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-view">👁️ View</span></td>
+          <td><span class="check-none">—</span></td>
+        </tr>
+        <tr>
+          <td>Execute & Complete Assigned Tasks</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-assigned">Assigned Only</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+        </tr>
+        <tr>
+          <td>Record Event Staff Attendance Check-in</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-view">👁️ View</span></td>
+          <td><span class="check-assigned">Self Check-in</span></td>
+        </tr>
+        <tr>
+          <td>Submit Operational Expense Claims</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+        </tr>
+        <tr>
+          <td>Approve / Reject Expense Reimbursements</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-none">—</span></td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-none">—</span></td>
+        </tr>
+        <tr>
+          <td>OpenRouter AI Operational Risk Advisor</td>
+          <td><span class="check-full">✓ Full (Executive Scope)</span></td>
+          <td><span class="check-full">✓ Full (Event Scope)</span></td>
+          <td><span class="check-full">✓ Full (Finance Scope)</span></td>
+          <td><span class="check-full">✓ Full (Staff Scope)</span></td>
+        </tr>
+        <tr>
+          <td>Analytics & Executive Report Generation</td>
+          <td><span class="check-full">✓ All Reports</span></td>
+          <td><span class="check-full">✓ Event & Ops</span></td>
+          <td><span class="check-full">✓ Finance Reports</span></td>
+          <td><span class="check-assigned">Assigned Ops</span></td>
+        </tr>
+        <tr>
+          <td>User Management & Immutable Audit Trail</td>
+          <td><span class="check-full">✓ Full</span></td>
+          <td><span class="check-none">—</span></td>
+          <td><span class="check-none">—</span></td>
+          <td><span class="check-none">—</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- JAVASCRIPT FOR INTERACTIVITY -->
+<script>
+  function switchRoleTab(role) {
+    document.querySelectorAll('.role-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.role-journey-panel').forEach(panel => panel.classList.remove('active'));
+
+    const activeBtn = document.querySelector(`.role-tab-btn.${role}`);
+    const activePanel = document.getElementById(`panel-${role}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    if (activePanel) activePanel.classList.add('active');
+  }
+
+  function selectStage(stageNum) {
+    document.querySelectorAll('.stage-card').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.stage-detail-box').forEach(b => b.style.display = 'none');
+
+    const card = document.getElementById(`stage-card-${stageNum}`);
+    const detail = document.getElementById(`stage-detail-${stageNum}`);
+    if (card) card.classList.add('active');
+    if (detail) detail.style.display = 'block';
+  }
+
+  const nodeDescriptions = {
+    1: "<strong>🏛️ Node 1: Event Hub & Venue Allocation:</strong> The foundational entity of EventOps. Event records store core metadata, date spans, venue associations, capacity limits, and manager accountability.",
+    2: "<strong>🛡️ Node 2: Governance & Approval Gate:</strong> Admin verification checkpoint. Guarantees budget feasibility, resource alignment, and organizational policy adherence before live execution begins.",
+    3: "<strong>⚙️ Node 3: Ops Dispatch Hub:</strong> Work breakdown engine. Dispatches prioritized task checklists (Critical/High/Med/Low), schedules staff shifts, and manages vendor contracting agreements.",
+    4: "<strong>📍 Node 4: Live Attendance & Check-in:</strong> Real-time venue execution tracking. Logs staff shift timestamps (Present/Late/Absent) and monitors on-the-ground operational readiness.",
+    5: "<strong>💳 Node 5: Finance & Budget Core:</strong> Financial management subsystem. Enforces 80% warning & 90% critical budget thresholds, handles receipt verification, and manages expense approval queues.",
+    6: "<strong>🤖 Node 6: AI Copilot & Immutable Audit:</strong> Intelligence & compliance layer. Generates structured risk evaluations via OpenRouter LLM and tracks immutable chronological audit logs."
+  };
+
+  function inspectNode(nodeNum) {
+    document.querySelectorAll('.diagram-node').forEach(n => n.classList.remove('active'));
+    const node = document.getElementById(`dnode-${nodeNum}`);
+    if (node) node.classList.add('active');
+
+    const inspector = document.getElementById('node-inspector-text');
+    if (inspector && nodeDescriptions[nodeNum]) {
+      inspector.innerHTML = nodeDescriptions[nodeNum];
+    }
+  }
+
+  function scrollToId(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+</script>
+{% endblock %}

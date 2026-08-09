@@ -1,4 +1,4 @@
-"""Base settings shared by all environments."""
+from datetime import timedelta
 from pathlib import Path
 import environ
 
@@ -71,10 +71,7 @@ ASGI_APPLICATION = "config.asgi.application"
 AUTH_USER_MODEL = "accounts.User"
 
 DATABASES = {
-    "default": env.db_url(
-        "DATABASE_URL",
-        default="postgres://eventops_django:EventOpsDevPass2026!@localhost:5432/eventops",
-    )
+    "default": env.db_url("DATABASE_URL")
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -115,8 +112,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME_MINUTES": 60,
-    "REFRESH_TOKEN_LIFETIME_DAYS": 1,
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
 SPECTACULAR_SETTINGS = {

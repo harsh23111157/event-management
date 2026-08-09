@@ -1,2 +1,39 @@
-node_modules/
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment and secrets
 .env
+.env.*
+!.env.example
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Django static and media
+staticfiles/
+media/
+
+# Databases
+*.sqlite3
+*.db
+
+# Node / frontend
+node_modules/
+package-lock.json
+
+# IDE / Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS artifacts
+.DS_Store
+Thumbs.db

@@ -1,15 +1,82 @@
 {% extends "base.html" %}
-{% block title %}Task Report — EventOps{% endblock %}
-{% block heading %}Task Report{% endblock %}
+{% load static %}
+
+{% block title %}Tasks & Operations Report — EventOps{% endblock %}
+{% block heading %}Tasks & Operations Analytics{% endblock %}
+{% block subheading %}Audit task completion rates, resolution velocity, critical blockers, and overdue items.{% endblock %}
+
 {% block content %}
-<div class="grid cols-4">
-  <div class="stat"><div class="label">Total tasks</div><div class="value">{{ report.total }}</div></div>
-  <div class="stat"><div class="label">To do</div><div class="value">{{ report.todo }}</div></div>
-  <div class="stat warn"><div class="label">In progress</div><div class="value">{{ report.in_progress }}</div></div>
-  <div class="stat success"><div class="label">Completed</div><div class="value">{{ report.completed }}</div></div>
+<!-- REPORT NAVIGATION SUB-BAR -->
+<div class="tabs-nav" style="margin-bottom: 20px;">
+  <a href="{% url 'report_events' %}" class="tab-btn">Events & Attendance</a>
+  {% if is_admin or is_finance or is_event_manager %}
+    <a href="{% url 'report_finance' %}" class="tab-btn">Financials & Budgets</a>
+  {% endif %}
+  <a href="{% url 'report_tasks' %}" class="tab-btn active">Tasks & Operations</a>
+  <a href="{% url 'report_vendors' %}" class="tab-btn">Vendors & Suppliers</a>
 </div>
-<div class="grid cols-2" style="margin-top:16px">
-  <div class="stat danger"><div class="label">Blocked</div><div class="value">{{ report.blocked }}</div></div>
-  <div class="stat danger"><div class="label">Overdue</div><div class="value">{{ report.overdue }}</div></div>
+
+<!-- TASK KPIS -->
+<div class="grid cols-4" style="margin-bottom: 20px;">
+  <div class="stat-card">
+    <div class="stat-icon-wrap indigo">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Total Tasks</div>
+      <div class="stat-val">{{ report.total }}</div>
+      <div class="stat-meta">In your permission scope</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap emerald">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Completed Tasks</div>
+      <div class="stat-val">{{ report.completed }}</div>
+      <div class="stat-meta">Successfully resolved</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap amber">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">In Progress / To Do</div>
+      <div class="stat-val">{{ report.in_progress }}</div>
+      <div class="stat-meta">{{ report.todo }} to do</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap rose">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Overdue Tasks</div>
+      <div class="stat-val">{{ report.overdue }}</div>
+      <div class="stat-meta">{{ report.critical }} critical priority</div>
+    </div>
+  </div>
+</div>
+
+<!-- TASK BREAKDOWN TABLE -->
+<div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
+  <div style="padding: 16px 20px; border-bottom: 1px solid var(--line);">
+    <div class="card-title">Execution Status Breakdown</div>
+  </div>
+  <table class="table">
+    <thead><tr><th>Status</th><th>Count</th><th>Resolution Share</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge b-completed">Completed</span></td><td><strong>{{ report.completed }}</strong></td><td>{{ report.completed }} / {{ report.total|default:1 }}</td></tr>
+      <tr><td><span class="badge b-in_progress">In Progress</span></td><td><strong>{{ report.in_progress }}</strong></td><td>{{ report.in_progress }} / {{ report.total|default:1 }}</td></tr>
+      <tr><td><span class="badge b-todo">To Do</span></td><td><strong>{{ report.todo }}</strong></td><td>{{ report.todo }} / {{ report.total|default:1 }}</td></tr>
+      <tr><td><span class="badge b-blocked">Blocked</span></td><td><strong>{{ report.blocked }}</strong></td><td>{{ report.blocked }} / {{ report.total|default:1 }}</td></tr>
+      <tr><td><span class="badge b-critical">Overdue Past Deadline</span></td><td><strong style="color: var(--danger);">{{ report.overdue }}</strong></td><td>{{ report.overdue }} / {{ report.total|default:1 }}</td></tr>
+    </tbody>
+  </table>
 </div>
 {% endblock %}

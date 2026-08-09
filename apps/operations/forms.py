@@ -10,6 +10,7 @@ class EventTaskForm(forms.ModelForm):
         widgets = {
             "due_date": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
             "description": forms.Textarea(attrs={"rows": 3}),
+            "notes": forms.Textarea(attrs={"rows": 2}),
         }
 
     def __init__(self, *args, event=None, **kwargs):
@@ -29,6 +30,21 @@ class EventTaskForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class StaffTaskUpdateForm(forms.ModelForm):
+    """Staff can only update status and operational notes on their assigned tasks."""
+    class Meta:
+        model = EventTask
+        fields = ["status", "notes"]
+        widgets = {
+            "notes": forms.Textarea(attrs={"rows": 3, "placeholder": "Add task execution notes, progress, or blockers..."}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for f in self.fields.values():
+            f.widget.attrs.setdefault("class", "form-control")
 
 
 class EventStaffForm(forms.ModelForm):

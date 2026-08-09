@@ -1,22 +1,63 @@
 {% extends "base.html" %}
-{% block title %}Sign in — EventOps{% endblock %}
+{% load static %}
+
+{% block title %}Sign In — EventOps Platform{% endblock %}
+
 {% block auth %}
-<div class="auth-card">
-  <h1>EventOps</h1>
-  <p class="muted">Event Operations Management Platform</p>
+<div class="auth-wrapper">
+  <div class="auth-header">
+    <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #6366f1, #4f46e5); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: #fff; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <h1>EventOps</h1>
+    <div style="font-size: 13.5px; color: var(--muted);">Enterprise Event Operations & RBAC Management</div>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger" style="margin-bottom: 18px;">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
   <form method="post">
     {% csrf_token %}
-    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
-    <label>Username</label>
-    {{ form.username }}
-    <label>Password</label>
-    {{ form.password }}
-    <button type="submit" class="btn btn-primary">Sign in</button>
+    <div class="form-row">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-control" required autofocus placeholder="Enter your username">
+      {% if form.username.errors %}<span class="form-error">{{ form.username.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control" required placeholder="••••••••">
+      {% if form.password.errors %}<span class="form-error">{{ form.password.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 11px; margin-top: 8px; font-size: 14.5px;">
+      Sign In to Platform &rarr;
+    </button>
   </form>
-  <div class="demo-creds">
-    <strong>Demo accounts</strong><br>
-    admin / manager / staff1 / staff2 / finance<br>
-    Password: <code>EventOps2026!</code>
+
+  <div class="auth-creds-grid">
+    <div style="font-weight: 700; color: var(--ink); margin-bottom: 8px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Demo Role Credentials:</div>
+    <div class="cred-chip">
+      <span>👑 <strong>Admin</strong></span>
+      <code>admin / admin12345</code>
+    </div>
+    <div class="cred-chip">
+      <span>🎯 <strong>Event Manager</strong></span>
+      <code>manager / manager12345</code>
+    </div>
+    <div class="cred-chip">
+      <span>💳 <strong>Finance</strong></span>
+      <code>finance / finance12345</code>
+    </div>
+    <div class="cred-chip">
+      <span>👷 <strong>Staff Member</strong></span>
+      <code>staff / staff12345</code>
+    </div>
   </div>
 </div>
 {% endblock %}

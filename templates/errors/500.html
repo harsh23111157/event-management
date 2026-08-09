@@ -1,4 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Server error — EventOps{% endblock %}
-{% block heading %}Server error (500){% endblock %}
-{% block content %}<p>Something went wrong on our side. Please try again later.</p>{% endblock %}
+{% load static %}
+
+{% block title %}500 Server Error — EventOps{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 40px auto; text-align: center; padding: 40px 30px;">
+  <div style="font-size: 54px; margin-bottom: 8px;">⚠️</div>
+  <h1 style="font-size: 26px; font-weight: 800; margin-bottom: 8px; color: var(--danger);">500 — Internal Server Error</h1>
+  <p style="font-size: 14.5px; color: var(--ink-secondary); margin-bottom: 24px;">
+    An unexpected error occurred processing your request. The system administrator has been notified.
+  </p>
+  <div>
+    <a href="{% url 'dashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+  </div>
+</div>
+{% endblock %}

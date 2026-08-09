@@ -1,126 +1,647 @@
 {% extends "base.html" %}
-{% block title %}{{ event.name }} — EventOps{% endblock %}
+{% load static %}
+
+{% block title %}{{ event.name }} — EventOps Workspace{% endblock %}
 {% block heading %}{{ event.name }}{% endblock %}
-{% block content %}
-<div class="page-actions">
-  <a href="{% url 'event_list' %}" class="btn btn-sm">Back to events</a>
-  <div>
-    {% if can_manage and event.is_editable %}
-      <a href="{% url 'event_edit' event.id %}" class="btn btn-sm">Edit</a>
+{% block subheading %}
+  {{ event.get_event_type_display }} · {{ event.start_date|date:"D, M d, Y · H:i" }} – {{ event.end_date|date:"H:i" }}
+{% endblock %}
+
+{% block topbar_actions %}
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    {% if can_edit %}
+      <a href="{% url 'event_update' event.id %}" class="btn btn-sm">Edit Details</a>
     {% endif %}
+
+    <!-- WORKFLOW ACTION BUTTONS -->
     {% if can_manage and event.status == 'DRAFT' %}
       <form method="post" action="{% url 'event_workflow' event.id 'submit' %}" style="display:inline">
-        {% csrf_token %}<button class="btn btn-sm btn-primary">Submit for approval</button>
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">Submit for Approval &rarr;</button>
       </form>
     {% endif %}
+
     {% if can_approve and event.status == 'SUBMITTED' %}
       <form method="post" action="{% url 'event_workflow' event.id 'approve' %}" style="display:inline">
-        {% csrf_token %}<button class="btn btn-sm btn-primary">Approve</button>
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success btn-sm">✓ Approve Event</button>
       </form>
-      <form method="post" action="{% url 'event_workflow' event.id 'reject' %}" style="display:inline">
-        {% csrf_token %}<input type="text" name="reason" placeholder="Reason" class="form-control" style="width:200px;display:inline-block">
-        <button class="btn btn-sm btn-danger">Reject</button>
-      </form>
+      <button type="button" class="btn btn-danger btn-sm" onclick="openEventRejectModal()">✕ Reject / Return</button>
     {% endif %}
+
     {% if can_manage and event.status == 'APPROVED' %}
       <form method="post" action="{% url 'event_workflow' event.id 'start' %}" style="display:inline">
-        {% csrf_token %}<button class="btn btn-sm btn-primary">Start event</button>
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">▶ Start Event</button>
       </form>
     {% endif %}
+
     {% if can_manage and event.status == 'IN_PROGRESS' %}
       <form method="post" action="{% url 'event_workflow' event.id 'complete' %}" style="display:inline">
-        {% csrf_token %}<button class="btn btn-sm btn-primary">Complete event</button>
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success btn-sm">✓ Mark Completed</button>
       </form>
     {% endif %}
+
     {% if can_manage and event.status == 'REJECTED' %}
       <form method="post" action="{% url 'event_workflow' event.id 'return_draft' %}" style="display:inline">
-        {% csrf_token %}<button class="btn btn-sm">Return to draft</button>
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm">Return to Draft</button>
       </form>
     {% endif %}
+
     {% if can_manage and event.status not in 'COMPLETED,CANCELLED' %}
       <form method="post" action="{% url 'event_workflow' event.id 'cancel' %}" style="display:inline">
-        {% csrf_token %}<button class="btn btn-sm btn-danger" onclick="return confirm('Cancel this event?')">Cancel</button>
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to cancel this event?')">Cancel Event</button>
       </form>
     {% endif %}
   </div>
+{% endblock %}
+
+{% block content %}
+<!-- REJECTION BANNER IF REJECTED -->
+{% if event.status == 'REJECTED' and event.rejection_reason %}
+  <div class="alert alert-danger" style="margin-bottom: 20px;">
+    <div>
+      <strong>Event Returned for Revision:</strong> {{ event.rejection_reason }}
+    </div>
+  </div>
+{% endif %}
+
+<!-- EDIT LOCK BANNER -->
+{% if not event.is_editable and event.status != 'CANCELLED' %}
+  <div class="alert alert-info" style="margin-bottom: 20px;">
+    <div>
+      🔒 <strong>Pipeline Lock:</strong> This event is currently in <strong>{{ event.get_status_display }}</strong> status and locked from direct metadata modifications.
+    </div>
+  </div>
+{% endif %}
+
+<!-- WORKSPACE TABS NAVIGATION -->
+<div class="tabs-nav" id="eventTabs">
+  <button class="tab-btn active" onclick="switchTab('overview')">
+    Overview & Readiness
+  </button>
+  <button class="tab-btn" onclick="switchTab('tasks')">
+    Tasks <span class="tab-count">{{ tasks|length }}</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('staff')">
+    Staff Team <span class="tab-count">{{ staff_list|length }}</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('schedules')">
+    Agenda & Schedule <span class="tab-count">{{ schedules|length }}</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('vendors')">
+    Vendors <span class="tab-count">{{ vendors|length }}</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('finance')">
+    Financials & Expenses <span class="tab-count">{{ expenses|length }}</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('attendance')">
+    Attendance <span class="tab-count">{{ attendances|length }}</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('activity')">
+    Activity Trail
+  </button>
 </div>
 
-<div class="card" style="margin-bottom:16px">
-  <div class="section-title">Event details</div>
-  <div class="detail-row"><span class="k">Status</span><span class="badge b-{{ event.status }}">{{ event.get_status_display }}</span></div>
-  <div class="detail-row"><span class="k">Type</span><span>{{ event.get_event_type_display }}</span></div>
-  <div class="detail-row"><span class="k">Start</span><span>{{ event.start_date|date:"Y-m-d H:i" }}</span></div>
-  <div class="detail-row"><span class="k">End</span><span>{{ event.end_date|date:"Y-m-d H:i" }}</span></div>
-  <div class="detail-row"><span class="k">Venue</span><span>{{ event.venue }} (capacity {{ event.venue.capacity }})</span></div>
-  <div class="detail-row"><span class="k">Manager</span><span>{{ event.manager|default:"—" }}</span></div>
-  <div class="detail-row"><span class="k">Expected attendees</span><span>{{ event.expected_attendees }}</span></div>
-  <div class="detail-row"><span class="k">Budget</span><span>{{ event.budget|floatformat:0 }}</span></div>
-  <div class="detail-row"><span class="k">Description</span><span>{{ event.description|default:"—" }}</span></div>
-  {% if event.rejection_reason %}<div class="detail-row"><span class="k">Rejection reason</span><span>{{ event.rejection_reason }}</span></div>{% endif %}
-</div>
+<!-- ============================================================= -->
+<!-- TAB 1: OVERVIEW & READINESS SCORECARD -->
+<!-- ============================================================= -->
+<div id="tab-overview" class="tab-pane">
+  <!-- READINESS SCORECARD HERO BANNER -->
+  <div class="readiness-card">
+    <div class="readiness-score-box">
+      <div class="score-circle">{{ readiness.score }}%</div>
+      <div>
+        <div style="font-size: 18px; font-weight: 800; letter-spacing:-0.3px;">Event Operational Readiness</div>
+        <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">
+          Deterministic 8-point operational audit: <strong>{{ readiness.checklist|length }} checks evaluated</strong>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="badge {{ readiness.badge_class }}" style="font-size: 13px; padding: 6px 14px;">
+        STATUS: {{ readiness.status }}
+      </span>
+    </div>
+  </div>
 
-<div class="grid cols-2">
-  <div class="card">
-    <div class="section-title">Tasks ({{ tasks|length }})</div>
-    {% if can_manage %}<a href="{% url 'task_create' event.id %}" class="btn btn-sm">+ Add task</a>{% endif %}
-    <table class="table" style="margin-top:10px">
-      <thead><tr><th>Task</th><th>Priority</th><th>Status</th><th>Due</th><th>Assignee</th></tr></thead>
-      <tbody>
-      {% for t in tasks %}
-      <tr><td><a href="{% url 'task_edit' t.id %}">{{ t.title }}</a></td>
-          <td><span class="badge b-{{ t.priority }}">{{ t.get_priority_display }}</span></td>
-          <td><span class="badge b-{{ t.status }}">{{ t.get_status_display }}</span></td>
-          <td>{{ t.due_date|date:"Y-m-d" }}</td>
-          <td>{{ t.assigned_to|default:"—" }}</td></tr>
-      {% empty %}<tr><td colspan="5" class="empty">No tasks yet.</td></tr>{% endfor %}
-      </tbody>
-    </table>
+  <!-- READINESS 8-POINT CHECKLIST GRID -->
+  <div class="card" style="margin-bottom: 22px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Operational Readiness Checklist</div>
+        <div class="card-subtitle">All requirements must be fulfilled before starting the live event</div>
+      </div>
+    </div>
+    <div class="readiness-checklist">
+      {% for item in readiness.checklist %}
+        <div class="checklist-item">
+          <div class="check-icon {% if item.passed %}pass{% else %}fail{% endif %}">
+            {% if item.passed %}✓{% else %}✕{% endif %}
+          </div>
+          <div class="check-content">
+            <div class="title">{{ item.name }}</div>
+            <div class="desc">{{ item.desc }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
   </div>
-  <div class="card">
-    <div class="section-title">Staff ({{ staff_list|length }})</div>
-    {% if can_manage %}<a href="{% url 'staff_create' event.id %}" class="btn btn-sm">+ Assign staff</a>{% endif %}
-    <table class="table" style="margin-top:10px">
-      <thead><tr><th>Staff member</th><th>Role</th><th>Assigned</th></tr></thead>
-      <tbody>
-      {% for s in staff_list %}
-      <tr><td>{{ s.staff }}</td><td>{{ s.role|default:"—" }}</td><td>{{ s.assigned_at|date:"Y-m-d" }}</td></tr>
-      {% empty %}<tr><td colspan="3" class="empty">No staff assigned.</td></tr>{% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
 
-<div class="grid cols-2" style="margin-top:16px">
-  <div class="card">
-    <div class="section-title">Vendors ({{ vendors|length }})</div>
-    {% if can_manage %}<a href="{% url 'event_vendor_create' event.id %}" class="btn btn-sm">+ Assign vendor</a>{% endif %}
-    <table class="table" style="margin-top:10px">
-      <thead><tr><th>Vendor</th><th>Amount</th><th>Status</th></tr></thead>
-      <tbody>
-      {% for v in vendors %}
-      <tr><td>{{ v.vendor }}</td><td>{{ v.contract_amount|floatformat:0 }}</td>
-          <td><span class="badge b-{{ v.status }}">{{ v.get_status_display }}</span></td></tr>
-      {% empty %}<tr><td colspan="3" class="empty">No vendors assigned.</td></tr>{% endfor %}
-      </tbody>
-    </table>
-  </div>
-  <div class="card">
-    <div class="section-title">Expenses ({{ expenses|length }})</div>
-    <table class="table">
-      <thead><tr><th>Description</th><th>Category</th><th>Amount</th><th>Status</th></tr></thead>
-      <tbody>
-      {% for ex in expenses %}
-      <tr><td>{{ ex.description }}</td><td>{{ ex.get_category_display }}</td>
-          <td>{{ ex.amount|floatformat:0 }}</td>
-          <td><span class="badge b-{{ ex.status }}">{{ ex.get_status_display }}</span></td></tr>
-      {% empty %}<tr><td colspan="4" class="empty">No expenses recorded.</td></tr>{% endfor %}
-      </tbody>
-    </table>
-    <div style="margin-top:10px;font-size:13px">
-      Approved: <strong>{{ approved_expenses_total|floatformat:0 }}</strong> |
-      Remaining: <strong>{{ remaining_budget|floatformat:0 }}</strong> |
-      Utilization: <strong>{{ utilization }}%</strong>
+  <!-- EVENT DETAILS & CORE PARAMETERS -->
+  <div class="grid cols-2-1" style="margin-bottom: 22px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Event Specifications</div>
+      </div>
+      <div class="grid cols-2" style="gap: 14px;">
+        <div>
+          <div class="stat-label">Venue Location</div>
+          <div style="font-weight: 700; font-size: 15px;">{{ event.venue.name|default:"Not assigned" }}</div>
+          <div style="font-size: 12px; color: var(--muted);">{{ event.venue.address|default:"" }}</div>
+        </div>
+        <div>
+          <div class="stat-label">Expected Capacity & Attendees</div>
+          <div style="font-weight: 700; font-size: 15px;">{{ event.expected_attendees }} Attendees</div>
+          <div style="font-size: 12px; color: var(--muted);">Venue Capacity: {{ event.venue.capacity|default:"N/A" }}</div>
+        </div>
+        <div>
+          <div class="stat-label">Assigned Event Manager</div>
+          <div style="font-weight: 700; font-size: 15px;">{{ event.manager.get_full_name|default:event.manager.username }}</div>
+          <div style="font-size: 12px; color: var(--muted);">{{ event.manager.email }}</div>
+        </div>
+        <div>
+          <div class="stat-label">Allocated Budget</div>
+          <div style="font-weight: 700; font-size: 15px; color: var(--primary);">₹{{ event.budget|floatformat:2 }}</div>
+          <div style="font-size: 12px; color: var(--muted);">Approved Spend: ₹{{ approved_expenses_total|floatformat:2 }}</div>
+        </div>
+      </div>
+
+      {% if event.description %}
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line-light);">
+          <div class="stat-label">Event Description & Brief</div>
+          <div style="font-size: 13.5px; color: var(--ink-secondary); white-space: pre-line;">{{ event.description }}</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Quick Health Snapshot</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px;">
+            <span>Budget Utilization</span>
+            <strong>{{ utilization }}%</strong>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill {% if utilization >= 90 %}danger{% elif utilization >= 80 %}warn{% else %}success{% endif %}" style="width: {{ utilization }}%;"></div>
+          </div>
+        </div>
+        <div>
+          <div class="stat-label">Total Assigned Staff</div>
+          <div style="font-size: 18px; font-weight: 800;">{{ staff_list|length }} Members</div>
+        </div>
+        <div>
+          <div class="stat-label">Contracted Vendors</div>
+          <div style="font-size: 18px; font-weight: 800;">{{ vendors|length }} Vendors</div>
+        </div>
+        <div>
+          <div class="stat-label">Operational Tasks</div>
+          <div style="font-size: 18px; font-weight: 800;">{{ tasks|length }} Tasks</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- ============================================================= -->
+<!-- TAB 2: TASKS & OPERATIONS -->
+<!-- ============================================================= -->
+<div id="tab-tasks" class="tab-pane" style="display: none;">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">Event Operational Tasks</div>
+        <div class="card-subtitle">Manage action items, assignees, priorities, and execution status</div>
+      </div>
+      {% if can_manage %}
+        <a href="{% url 'task_create' event.id %}" class="btn btn-primary btn-sm">+ Add Task</a>
+      {% endif %}
+    </div>
+    {% if tasks %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Task Title</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Due Date</th>
+            <th>Assignee</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tasks %}
+            <tr>
+              <td>
+                <strong>{{ t.title }}</strong>
+                {% if t.description %}<div style="font-size: 12px; color: var(--muted);">{{ t.description|truncatechars:50 }}</div>{% endif %}
+              </td>
+              <td><span class="badge b-{{ t.priority|lower }}">{{ t.get_priority_display }}</span></td>
+              <td><span class="badge b-{{ t.status|lower }}">{{ t.get_status_display }}</span></td>
+              <td>
+                <span {% if t.is_overdue %}style="color: var(--danger); font-weight:bold;"{% endif %}>
+                  {{ t.due_date|date:"M d, Y H:i" }}
+                </span>
+              </td>
+              <td>{{ t.assigned_to.get_full_name|default:"Unassigned" }}</td>
+              <td>
+                <a href="{% url 'task_edit' t.id %}" class="btn btn-sm">Edit &rarr;</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div>No operational tasks defined yet. Click "+ Add Task" to create one.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TAB 3: STAFF TEAM -->
+<!-- ============================================================= -->
+<div id="tab-staff" class="tab-pane" style="display: none;">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">Assigned Staff Team</div>
+        <div class="card-subtitle">Operational crew assigned to this event</div>
+      </div>
+      {% if can_manage %}
+        <a href="{% url 'staff_create' event.id %}" class="btn btn-primary btn-sm">+ Assign Staff</a>
+      {% endif %}
+    </div>
+    {% if staff_list %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Staff Member</th>
+            <th>Role / Responsibility</th>
+            <th>Email</th>
+            <th>Assigned Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in staff_list %}
+            <tr>
+              <td>
+                <strong>{{ s.staff.get_full_name|default:s.staff.username }}</strong>
+              </td>
+              <td><span class="badge b-medium">{{ s.role|default:"General Operations" }}</span></td>
+              <td>{{ s.staff.email }}</td>
+              <td>{{ s.assigned_at|date:"M d, Y" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <div>No staff members assigned to this event yet.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TAB 4: SCHEDULE & AGENDA -->
+<!-- ============================================================= -->
+<div id="tab-schedules" class="tab-pane" style="display: none;">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">Event Schedule & Run of Show</div>
+        <div class="card-subtitle">Chronological timeline of event sessions and milestones</div>
+      </div>
+      {% if can_manage %}
+        <a href="{% url 'schedule_create' event.id %}" class="btn btn-primary btn-sm">+ Add Schedule Item</a>
+      {% endif %}
+    </div>
+    {% if schedules %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Time Slot</th>
+            <th>Session Title</th>
+            <th>Location / Room</th>
+            <th>Lead Staff</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sc in schedules %}
+            <tr>
+              <td>
+                <strong>{{ sc.start_time|date:"H:i" }} – {{ sc.end_time|date:"H:i" }}</strong>
+                <div style="font-size: 11.5px; color: var(--muted);">{{ sc.start_time|date:"M d, Y" }}</div>
+              </td>
+              <td>
+                <strong>{{ sc.title }}</strong>
+                {% if sc.description %}<div style="font-size: 12px; color: var(--muted);">{{ sc.description }}</div>{% endif %}
+              </td>
+              <td>{{ sc.location|default:"Main Hall" }}</td>
+              <td>{{ sc.responsible_staff.staff.get_full_name|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">⏱</div>
+        <div>No schedule items defined. Click "+ Add Schedule Item" to build the agenda.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TAB 5: VENDORS -->
+<!-- ============================================================= -->
+<div id="tab-vendors" class="tab-pane" style="display: none;">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">Contracted Vendors & Services</div>
+        <div class="card-subtitle">External suppliers, catering, AV, and logistics</div>
+      </div>
+      {% if can_manage %}
+        <a href="{% url 'event_vendor_create' event.id %}" class="btn btn-primary btn-sm">+ Assign Vendor</a>
+      {% endif %}
+    </div>
+    {% if vendors %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Vendor Name</th>
+            <th>Service Type</th>
+            <th>Contract Amount</th>
+            <th>Status</th>
+            <th>Contact</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev_v in vendors %}
+            <tr>
+              <td><strong>{{ ev_v.vendor.name }}</strong></td>
+              <td>{{ ev_v.vendor.get_service_type_display }}</td>
+              <td><strong>₹{{ ev_v.contract_amount|floatformat:2 }}</strong></td>
+              <td><span class="badge b-{{ ev_v.status|lower }}">{{ ev_v.get_status_display }}</span></td>
+              <td>{{ ev_v.vendor.contact_person }} ({{ ev_v.vendor.phone }})</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">🤝</div>
+        <div>No vendors contracted for this event yet.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TAB 6: FINANCIALS & EXPENSES -->
+<!-- ============================================================= -->
+<div id="tab-finance" class="tab-pane" style="display: none;">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">Event Expenses & Budgets</div>
+        <div class="card-subtitle">
+          Allocated: ₹{{ event.budget|floatformat:0 }} | Approved: ₹{{ approved_expenses_total|floatformat:0 }} | Remaining: ₹{{ remaining_budget|floatformat:0 }}
+        </div>
+      </div>
+      {% if can_manage or is_finance or is_admin %}
+        <a href="{% url 'expense_create' %}" class="btn btn-primary btn-sm">+ Log Expense</a>
+      {% endif %}
+    </div>
+    {% if expenses %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Expense Item</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Submitted By</th>
+            <th>Status</th>
+            {% if is_finance or is_admin %}<th>Decision</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for ex in expenses %}
+            <tr>
+              <td>
+                <strong>{{ ex.description }}</strong>
+                <div style="font-size: 11.5px; color: var(--muted);">{{ ex.created_at|date:"M d, Y" }}</div>
+              </td>
+              <td><span class="badge b-medium">{{ ex.get_category_display }}</span></td>
+              <td><strong>₹{{ ex.amount|floatformat:2 }}</strong></td>
+              <td>{{ ex.created_by.get_full_name|default:ex.created_by.username }}</td>
+              <td><span class="badge b-{{ ex.status|lower }}">{{ ex.get_status_display }}</span></td>
+              {% if is_finance or is_admin %}
+                <td>
+                  {% if ex.status == 'PENDING' %}
+                    <div style="display: flex; gap: 6px;">
+                      <form action="{% url 'expense_approve' ex.id %}" method="post" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                      </form>
+                      <button type="button" class="btn btn-danger btn-sm" onclick="openExpenseRejectModal('{{ ex.id }}', '{{ ex.description|escapejs }}')">Reject</button>
+                    </div>
+                  {% else %}
+                    <span style="font-size: 12px; color: var(--muted);">Processed</span>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">💳</div>
+        <div>No expenses logged for this event.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TAB 7: ATTENDANCE -->
+<!-- ============================================================= -->
+<div id="tab-attendance" class="tab-pane" style="display: none;">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">Staff On-Site Attendance & Shifts</div>
+        <div class="card-subtitle">Live check-in and check-out logs</div>
+      </div>
+    </div>
+    {% if attendances %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Staff Member</th>
+            <th>Check In</th>
+            <th>Check Out</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for att in attendances %}
+            <tr>
+              <td><strong>{{ att.staff.get_full_name|default:att.staff.username }}</strong></td>
+              <td>{{ att.check_in|date:"M d, Y · H:i:s"|default:"Not checked in" }}</td>
+              <td>{{ att.check_out|date:"M d, Y · H:i:s"|default:"Active on shift" }}</td>
+              <td><span class="badge b-{{ att.status|lower }}">{{ att.get_status_display }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">⏱</div>
+        <div>No attendance logs recorded for this event.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TAB 8: ACTIVITY LOG -->
+<!-- ============================================================= -->
+<div id="tab-activity" class="tab-pane" style="display: none;">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line);">
+      <div class="card-title">Event Audit & Transition History</div>
+    </div>
+    {% if activity_logs %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>User</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in activity_logs %}
+            <tr>
+              <td style="font-size: 12px; color: var(--muted);">{{ log.timestamp|date:"M d, Y · H:i" }}</td>
+              <td><span class="badge b-medium">{{ log.action }}</span></td>
+              <td>{{ log.user.get_full_name|default:log.user.username }}</td>
+              <td>{{ log.description }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📜</div>
+        <div>No activity recorded yet.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- EVENT REJECT MODAL (ADMIN ONLY) -->
+<div id="eventRejectModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--r-lg); width:460px; max-width:90vw; padding:24px; box-shadow:var(--shadow-lg);">
+    <h3 style="margin-bottom:8px;">Reject & Return Event</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:14px;">Please specify the feedback or corrections required by the Event Manager.</p>
+    <form method="post" action="{% url 'event_workflow' event.id 'reject' %}">
+      {% csrf_token %}
+      <div class="form-row">
+        <label class="form-label">Rejection Reason (Required):</label>
+        <textarea name="reason" class="form-control" rows="3" required placeholder="State why this event is returned..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" class="btn btn-sm" onclick="closeEventRejectModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EXPENSE REJECT MODAL (FINANCE / ADMIN) -->
+<div id="expenseRejectModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--r-lg); width:460px; max-width:90vw; padding:24px; box-shadow:var(--shadow-lg);">
+    <h3 style="margin-bottom:8px;">Reject Expense Request</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:14px;" id="expenseRejectDesc"></p>
+    <form id="expenseRejectForm" method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <label class="form-label">Rejection Reason (Required):</label>
+        <textarea name="reason" class="form-control" rows="3" required placeholder="State why this expense request cannot be approved..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" class="btn btn-sm" onclick="closeExpenseRejectModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('#eventTabs .tab-btn').forEach(el => el.classList.remove('active'));
+    
+    const targetPane = document.getElementById('tab-' + tabId);
+    if (targetPane) {
+      targetPane.style.display = 'block';
+    }
+    
+    event.currentTarget.classList.add('active');
+    history.replaceState(null, null, '#' + tabId);
+  }
+
+  // Restore active tab from hash
+  window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && document.getElementById('tab-' + hash)) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('#eventTabs .tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + hash).style.display = 'block';
+      const btn = Array.from(document.querySelectorAll('#eventTabs .tab-btn')).find(b => b.getAttribute('onclick').includes(hash));
+      if (btn) btn.classList.add('active');
+    }
+  });
+
+  function openEventRejectModal() {
+    document.getElementById('eventRejectModal').style.display = 'flex';
+  }
+  function closeEventRejectModal() {
+    document.getElementById('eventRejectModal').style.display = 'none';
+  }
+
+  function openExpenseRejectModal(id, desc) {
+    document.getElementById('expenseRejectDesc').innerText = 'Expense: ' + desc;
+    document.getElementById('expenseRejectForm').action = '/expenses/' + id + '/reject/';
+    document.getElementById('expenseRejectModal').style.display = 'flex';
+  }
+  function closeExpenseRejectModal() {
+    document.getElementById('expenseRejectModal').style.display = 'none';
+  }
+</script>
 {% endblock %}

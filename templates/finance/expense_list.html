@@ -1,46 +1,205 @@
 {% extends "base.html" %}
-{% block title %}Expenses — EventOps{% endblock %}
-{% block heading %}Expenses{% endblock %}
+{% load static %}
+
+{% block title %}Expenses & Finance — EventOps{% endblock %}
+{% block heading %}Expenses & Financial Approvals{% endblock %}
+{% block subheading %}Track expenditure requests, budget utilization, and manage approval decisions.{% endblock %}
+
+{% block topbar_actions %}
+  {% if can_create_expense %}
+    <a href="{% url 'expense_create' %}" class="btn btn-primary">+ Log New Expense</a>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
-<div class="page-actions">
-  <div>
-    <a href="{% url 'expense_list' %}" class="btn btn-sm {% if not request.GET.status %}btn-primary{% endif %}">All</a>
-    {% for val,label in status_choices %}
-    <a href="?status={{ val }}" class="btn btn-sm {% if request.GET.status == val %}btn-primary{% endif %}">{{ label }}</a>
-    {% endfor %}
+<!-- FINANCIAL KPI CARDS -->
+<div class="grid cols-4" style="margin-bottom: 20px;">
+  <div class="stat-card">
+    <div class="stat-icon-wrap indigo">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Total Budgets</div>
+      <div class="stat-val">₹{{ total_budget|floatformat:0 }}</div>
+      <div class="stat-meta">{{ utilization }}% consumed</div>
+    </div>
   </div>
-  {% if can_approve %}
-  <a href="{% url 'expense_create' %}" class="btn btn-primary">+ New Expense</a>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap emerald">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Approved Spend</div>
+      <div class="stat-val">₹{{ approved_total|floatformat:0 }}</div>
+      <div class="stat-meta">{{ status_counts.APPROVED }} approved items</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap amber">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Pending Approval</div>
+      <div class="stat-val">₹{{ pending_total|floatformat:0 }}</div>
+      <div class="stat-meta">{{ status_counts.PENDING }} requests waiting</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrap sky">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-label">Remaining Balance</div>
+      <div class="stat-val">₹{{ remaining_budget|floatformat:0 }}</div>
+      <div class="stat-meta">Net available funds</div>
+    </div>
+  </div>
+</div>
+
+<!-- PIPELINE STATUS CHIPS -->
+<div class="pipeline-bar">
+  <a href="?status=" class="pipeline-chip {% if not current_status %}active{% endif %}">
+    <span>All Expenses</span>
+    <span class="pipeline-count">{{ status_counts.all }}</span>
+  </a>
+  <a href="?status=PENDING" class="pipeline-chip {% if current_status == 'PENDING' %}active{% endif %}">
+    <span>Pending Review</span>
+    <span class="pipeline-count">{{ status_counts.PENDING }}</span>
+  </a>
+  <a href="?status=APPROVED" class="pipeline-chip {% if current_status == 'APPROVED' %}active{% endif %}">
+    <span>Approved</span>
+    <span class="pipeline-count">{{ status_counts.APPROVED }}</span>
+  </a>
+  <a href="?status=REJECTED" class="pipeline-chip {% if current_status == 'REJECTED' %}active{% endif %}">
+    <span>Rejected</span>
+    <span class="pipeline-count">{{ status_counts.REJECTED }}</span>
+  </a>
+</div>
+
+<!-- SEARCH & FILTER BAR -->
+<form method="get" class="filter-bar">
+  {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+  <div class="filter-group">
+    <div class="search-input">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search expense description, event, submitter...">
+    </div>
+    <select name="category" class="form-control" style="width: auto; padding: 7px 12px;" onchange="this.form.submit()">
+      <option value="">All Categories</option>
+      {% for val, label in category_choices %}
+        <option value="{{ val }}" {% if current_category == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <button type="submit" class="btn btn-sm">Filter</button>
+    {% if search_query or current_category or current_status %}
+      <a href="{% url 'expense_list' %}" class="btn btn-sm" style="color: var(--muted);">Reset</a>
+    {% endif %}
+  </div>
+</form>
+
+<!-- EXPENSES TABLE -->
+<div class="table-container">
+  {% if expenses %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Event</th>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Submitted By</th>
+          <th>Status</th>
+          {% if can_approve %}<th>Decision Action</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in expenses %}
+          <tr>
+            <td>
+              <strong>{{ exp.description }}</strong>
+              <div style="font-size: 11.5px; color: var(--muted);">{{ exp.created_at|date:"M d, Y · H:i" }}</div>
+              {% if exp.status == 'REJECTED' and exp.rejection_reason %}
+                <div style="font-size: 11.5px; color: var(--danger); margin-top:2px;">Reason: {{ exp.rejection_reason }}</div>
+              {% endif %}
+            </td>
+            <td><a href="{% url 'event_detail' exp.event.id %}">{{ exp.event.name }}</a></td>
+            <td><span class="badge b-medium">{{ exp.get_category_display }}</span></td>
+            <td><strong style="font-size: 14.5px;">₹{{ exp.amount|floatformat:2 }}</strong></td>
+            <td>{{ exp.created_by.get_full_name|default:exp.created_by.username }}</td>
+            <td><span class="badge b-{{ exp.status|lower }}">{{ exp.get_status_display }}</span></td>
+            {% if can_approve %}
+              <td>
+                {% if exp.status == 'PENDING' %}
+                  <div style="display: flex; gap: 6px;">
+                    <form action="{% url 'expense_approve' exp.id %}" method="post" style="margin:0;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                    </form>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="openExpenseRejectModal('{{ exp.id }}', '{{ exp.description|escapejs }}')">Reject</button>
+                  </div>
+                {% else %}
+                  <span style="font-size: 12px; color: var(--muted);">{{ exp.approved_by.get_full_name|default:exp.approved_by.username|default:"Processed" }}</span>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">💳</div>
+      <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">No expenses found</div>
+      <div style="font-size: 13px; color: var(--muted);">No expenses match your search or filter settings.</div>
+    </div>
   {% endif %}
 </div>
-<table class="table">
-  <thead><tr><th>Description</th><th>Event</th><th>Category</th><th>Amount</th><th>Status</th><th>Created by</th>{% if can_approve %}<th>Actions</th>{% endif %}</tr></thead>
-  <tbody>
-  {% for e in expenses %}
-  <tr>
-    <td>{{ e.description }}</td>
-    <td><a href="{% url 'event_detail' e.event.id %}">{{ e.event.name }}</a></td>
-    <td>{{ e.get_category_display }}</td>
-    <td>{{ e.amount|floatformat:0 }}</td>
-    <td><span class="badge b-{{ e.status }}">{{ e.get_status_display }}</span></td>
-    <td>{{ e.created_by|default:"—" }}</td>
-    {% if can_approve %}
-    <td>
-      {% if e.status == 'PENDING' %}
-      <form method="post" action="{% url 'expense_approve' e.id %}" style="display:inline">
-        {% csrf_token %}<button class="btn btn-sm btn-primary">Approve</button>
-      </form>
-      <form method="post" action="{% url 'expense_reject' e.id %}" style="display:inline">
-        {% csrf_token %}<input type="text" name="reason" placeholder="Reason" class="form-control" style="width:160px;display:inline-block">
-        <button class="btn btn-sm btn-danger">Reject</button>
-      </form>
-      {% endif %}
-    </td>
+
+<!-- PAGINATION -->
+{% if is_paginated %}
+  <div style="display: flex; justify-content: center; gap: 8px; margin-top: 20px;">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-sm">&larr; Previous</a>
     {% endif %}
-  </tr>
-  {% empty %}
-  <tr><td colspan="{% if can_approve %}7{% else %}6{% endif %}" class="empty">No expenses found.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+    <span style="padding: 6px 12px; font-weight: 600; font-size: 13px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-sm">Next &rarr;</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+<!-- EXPENSE REJECT MODAL -->
+<div id="expenseRejectModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--r-lg); width:460px; max-width:90vw; padding:24px; box-shadow:var(--shadow-lg);">
+    <h3 style="margin-bottom:8px;">Reject Expense Request</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:14px;" id="expenseRejectDesc"></p>
+    <form id="expenseRejectForm" method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <label class="form-label">Rejection Reason (Required):</label>
+        <textarea name="reason" class="form-control" rows="3" required placeholder="State why this expense request cannot be approved..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" class="btn btn-sm" onclick="closeExpenseRejectModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openExpenseRejectModal(id, desc) {
+    document.getElementById('expenseRejectDesc').innerText = 'Expense: ' + desc;
+    document.getElementById('expenseRejectForm').action = '/expenses/' + id + '/reject/';
+    document.getElementById('expenseRejectModal').style.display = 'flex';
+  }
+  function closeExpenseRejectModal() {
+    document.getElementById('expenseRejectModal').style.display = 'none';
+  }
+</script>
 {% endblock %}

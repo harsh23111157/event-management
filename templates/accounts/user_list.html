@@ -1,25 +1,104 @@
 {% extends "base.html" %}
-{% block title %}Users — EventOps{% endblock %}
-{% block heading %}Users{% endblock %}
+{% load static %}
+
+{% block title %}User Management — EventOps{% endblock %}
+{% block heading %}User Directory & RBAC Management{% endblock %}
+{% block subheading %}Manage organizational accounts, roles, credentials, and access tiers.{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'user_create' %}" class="btn btn-primary">+ Create New User</a>
+{% endblock %}
+
 {% block content %}
-<div class="page-actions">
-  <p class="muted">Manage platform users and their roles.</p>
-  <a href="{% url 'user_create' %}" class="btn btn-primary">New user</a>
+<!-- SEARCH & ROLE FILTER BAR -->
+<form method="get" class="filter-bar">
+  <div class="filter-group">
+    <div class="search-input">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search username, email, name...">
+    </div>
+    <select name="role" class="form-control" style="width: auto; padding: 7px 12px;" onchange="this.form.submit()">
+      <option value="">All Roles</option>
+      {% for val, label in role_choices %}
+        <option value="{{ val }}" {% if current_role == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <button type="submit" class="btn btn-sm">Filter</button>
+    {% if search_query or current_role %}
+      <a href="{% url 'users' %}" class="btn btn-sm" style="color: var(--muted);">Reset</a>
+    {% endif %}
+  </div>
+</form>
+
+<!-- USER TABLE -->
+<div class="table-container">
+  {% if users %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Username</th>
+          <th>Role / Permission Tier</th>
+          <th>Email Address</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="user-avatar" style="width:32px; height:32px; font-size:12px; background:var(--primary); color:#fff;">
+                  {{ u.first_name|default:u.username|slice:":1"|upper }}
+                </div>
+                <strong>{{ u.get_full_name|default:u.username }}</strong>
+              </div>
+            </td>
+            <td><code>{{ u.username }}</code></td>
+            <td>
+              <span class="role-pill">
+                <span class="role-dot {{ u.role }}"></span>
+                <span>{{ u.get_role_display }}</span>
+              </span>
+            </td>
+            <td>{{ u.email|default:"—" }}</td>
+            <td>
+              {% if u.is_active %}
+                <span class="badge b-approved">Active</span>
+              {% else %}
+                <span class="badge b-draft">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'user_edit' u.id %}" class="btn btn-sm">Edit Role &rarr;</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">👥</div>
+      <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">No users found</div>
+      <div style="font-size: 13px; color: var(--muted);">No user accounts match your search filters.</div>
+    </div>
+  {% endif %}
 </div>
-<table class="table">
-  <thead><tr><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Phone</th><th>Active</th><th></th></tr></thead>
-  <tbody>
-  {% for u in users %}
-    <tr>
-      <td>{{ u.username }}</td>
-      <td>{{ u.get_full_name }}</td>
-      <td>{{ u.email }}</td>
-      <td><span class="badge b-{{ u.role|lower }}">{{ u.get_role_display }}</span></td>
-      <td>{{ u.phone|default:"—" }}</td>
-      <td>{{ u.is_active|yesno:"Yes,No" }}</td>
-      <td><a href="{% url 'user_edit' u.id %}" class="btn btn-sm">Edit</a></td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+
+<!-- PAGINATION -->
+{% if is_paginated %}
+  <div style="display: flex; justify-content: center; gap: 8px; margin-top: 20px;">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if current_role %}&role={{ current_role }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-sm">&larr; Previous</a>
+    {% endif %}
+    <span style="padding: 6px 12px; font-weight: 600; font-size: 13px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if current_role %}&role={{ current_role }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-sm">Next &rarr;</a>
+    {% endif %}
+  </div>
+{% endif %}
+
 {% endblock %}

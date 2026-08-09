@@ -1,16 +1,42 @@
 {% extends "base.html" %}
-{% block title %}Assign staff — EventOps{% endblock %}
-{% block heading %}Assign staff member{% endblock %}
+{% load static %}
+
+{% block title %}Assign Staff — {{ event.name }}{% endblock %}
+{% block heading %}Assign Staff Member{% endblock %}
+{% block subheading %}Assign a team member to {{ event.name }} with a defined operational role.{% endblock %}
+
 {% block content %}
-<form method="post">
-  {% csrf_token %}
-  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
-  <div class="form-row"><label>Staff member</label>{{ form.staff }}</div>
-  <div class="form-row"><label>Role</label>{{ form.role }}</div>
-  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
-  <div class="actions" style="margin-top:16px">
-    <button type="submit" class="btn btn-primary">Assign staff</button>
-    <a href="{% url 'event_detail' event.id %}" class="btn">Cancel</a>
+<div class="form-card">
+  <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px; margin-bottom: 20px;">
+    <div style="font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Target Event</div>
+    <div style="font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px;">
+      <a href="{% url 'event_detail' event.id %}">{{ event.name }}</a>
+    </div>
   </div>
-</form>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="form-row">
+      <label class="form-label">Staff Member *</label>
+      {{ form.staff }}
+      {% if form.staff.errors %}<span class="form-error">{{ form.staff.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Operational Role / Responsibility *</label>
+      {{ form.role }}
+      <span class="form-help">e.g. Lead Coordinator, Audio-Visual Technician, Registration Desk, Logistics Lead.</span>
+      {% if form.role.errors %}<span class="form-error">{{ form.role.errors|join:", " }}</span>{% endif %}
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);">
+      <button type="submit" class="btn btn-primary">Confirm Staff Assignment</button>
+      <a href="{% url 'event_detail' event.id %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
 {% endblock %}

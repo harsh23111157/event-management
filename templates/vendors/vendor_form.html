@@ -1,22 +1,63 @@
 {% extends "base.html" %}
-{% block title %}{{ form.instance.id|yesno:"Edit vendor,New vendor" }} — EventOps{% endblock %}
-{% block heading %}{{ form.instance.id|yesno:"Edit vendor,New vendor" }}{% endblock %}
+{% load static %}
+
+{% block title %}{{ form.instance.id|yesno:"Edit Vendor,Add Vendor" }} — EventOps{% endblock %}
+{% block heading %}{{ form.instance.id|yesno:"Edit Vendor,Add New Vendor" }}{% endblock %}
+{% block subheading %}Manage supplier details, category of service, contact information, and active status.{% endblock %}
+
 {% block content %}
-<form method="post">
-  {% csrf_token %}
-  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
-  <div class="form-row"><label>Name</label>{{ form.name }}</div>
-  <div class="form-grid">
-    <div class="form-row"><label>Service type</label>{{ form.service_type }}</div>
-    <div class="form-row"><label>Contact person</label>{{ form.contact_person }}</div>
-    <div class="form-row"><label>Email</label>{{ form.email }}</div>
-    <div class="form-row"><label>Phone</label>{{ form.phone }}</div>
-    <div class="form-row"><label>Active</label>{{ form.is_active }}</div>
-  </div>
-  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
-  <div class="actions" style="margin-top:16px">
-    <button type="submit" class="btn btn-primary">Save vendor</button>
-    <a href="{% url 'vendor_list' %}" class="btn">Cancel</a>
-  </div>
-</form>
+<div class="form-card">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Vendor Company Name *</label>
+        {{ form.name }}
+        {% if form.name.errors %}<span class="form-error">{{ form.name.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Service Type / Category *</label>
+        {{ form.service_type }}
+        {% if form.service_type.errors %}<span class="form-error">{{ form.service_type.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Contact Person Name</label>
+        {{ form.contact_person }}
+        {% if form.contact_person.errors %}<span class="form-error">{{ form.contact_person.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Contact Phone *</label>
+        {{ form.phone }}
+        {% if form.phone.errors %}<span class="form-error">{{ form.phone.errors|join:", " }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Contact Email *</label>
+        {{ form.email }}
+        {% if form.email.errors %}<span class="form-error">{{ form.email.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-row" style="display:flex; align-items:center; gap:8px; margin-top:28px;">
+        {{ form.is_active }}
+        <label class="form-label" style="margin:0;">Active Verified Vendor</label>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);">
+      <button type="submit" class="btn btn-primary">Save Vendor</button>
+      <a href="{% url 'vendor_list' %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
 {% endblock %}
