@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Venues — EventOps{% endblock %}
+{% block heading %}Venues{% endblock %}
+{% block content %}
+<div class="page-actions">
+  <div></div>
+  {% if user.is_admin %}<a href="{% url 'venue_create' %}" class="btn btn-primary">+ New Venue</a>{% endif %}
+</div>
+<table class="table">
+  <thead><tr><th>Name</th><th>Capacity</th><th>Contact</th><th>Phone</th><th>Active</th>{% if user.is_admin %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for v in venues %}
+  <tr>
+    <td>{{ v.name }}</td><td>{{ v.capacity }}</td><td>{{ v.contact_person|default:"—" }}</td>
+    <td>{{ v.contact_phone|default:"—" }}</td>
+    <td>{% if v.is_active %}<span class="badge b-completed">Yes</span>{% else %}<span class="badge b-cancelled">No</span>{% endif %}</td>
+    {% if user.is_admin %}<td><a href="{% url 'venue_edit' v.id %}" class="btn btn-sm">Edit</a></td>{% endif %}
+  </tr>
+  {% empty %}<tr><td colspan="6" class="empty">No venues yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

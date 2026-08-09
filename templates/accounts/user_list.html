@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Users — EventOps{% endblock %}
+{% block heading %}Users{% endblock %}
+{% block content %}
+<div class="page-actions">
+  <p class="muted">Manage platform users and their roles.</p>
+  <a href="{% url 'user_create' %}" class="btn btn-primary">New user</a>
+</div>
+<table class="table">
+  <thead><tr><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Phone</th><th>Active</th><th></th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    <tr>
+      <td>{{ u.username }}</td>
+      <td>{{ u.get_full_name }}</td>
+      <td>{{ u.email }}</td>
+      <td><span class="badge b-{{ u.role|lower }}">{{ u.get_role_display }}</span></td>
+      <td>{{ u.phone|default:"—" }}</td>
+      <td>{{ u.is_active|yesno:"Yes,No" }}</td>
+      <td><a href="{% url 'user_edit' u.id %}" class="btn btn-sm">Edit</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

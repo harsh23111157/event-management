@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ form.instance.id|yesno:"Edit venue,New venue" }} — EventOps{% endblock %}
+{% block heading %}{{ form.instance.id|yesno:"Edit venue,New venue" }}{% endblock %}
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-row"><label>Name</label>{{ form.name }}</div>
+  <div class="form-row"><label>Address</label>{{ form.address }}</div>
+  <div class="form-grid">
+    <div class="form-row"><label>Capacity</label>{{ form.capacity }}</div>
+    <div class="form-row"><label>Contact person</label>{{ form.contact_person }}</div>
+    <div class="form-row"><label>Contact phone</label>{{ form.contact_phone }}</div>
+    <div class="form-row"><label>Active</label>{{ form.is_active }}</div>
+  </div>
+  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
+  <div class="actions" style="margin-top:16px">
+    <button type="submit" class="btn btn-primary">Save venue</button>
+    <a href="{% url 'venue_list' %}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — EventOps{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block content %}
+{% for level,msg in budget_warnings %}
+  <div class="alert alert-{{ level }}">{{ msg }}</div>
+{% endfor %}
+
+<div class="grid cols-4">
+  <div class="stat"><div class="label">Total events</div><div class="value">{{ events.total }}</div></div>
+  <div class="stat"><div class="label">In progress</div><div class="value">{{ events.in_progress }}</div></div>
+  <div class="stat"><div class="label">Completed</div><div class="value">{{ events.completed }}</div></div>
+  <div class="stat"><div class="label">Cancelled</div><div class="value">{{ events.cancelled }}</div></div>
+</div>
+
+<div class="grid cols-4" style="margin-top:16px">
+  <div class="stat"><div class="label">Total tasks</div><div class="value">{{ tasks.total }}</div></div>
+  <div class="stat success"><div class="label">Completed tasks</div><div class="value">{{ tasks.completed }}</div></div>
+  <div class="stat warn"><div class="label">Pending tasks</div><div class="value">{{ tasks.todo }}</div></div>
+  <div class="stat danger"><div class="label">Overdue tasks</div><div class="value">{{ tasks.overdue }}</div></div>
+</div>
+
+<div class="grid cols-4" style="margin-top:16px">
+  <div class="stat"><div class="label">Total budget</div><div class="value">{{ finance.total_budget|floatformat:0 }}</div></div>
+  <div class="stat"><div class="label">Approved expenses</div><div class="value">{{ finance.approved_expenses|floatformat:0 }}</div></div>
+  <div class="stat"><div class="label">Remaining budget</div><div class="value">{{ finance.remaining_budget|floatformat:0 }}</div></div>
+  <div class="stat {% if finance.utilization_pct >= 90 %}danger{% elif finance.utilization_pct >= 80 %}warn{% endif %}">
+    <div class="label">Budget utilization</div><div class="value">{{ finance.utilization_pct }}%</div>
+  <div class="progress {% if finance.utilization_pct >= 90 %}danger{% elif finance.utilization_pct >= 80 %}warn{% else %}success{% endif %}" style="margin-top:8px"><span style="width:{{ finance.utilization_pct|floatformat:0 }}%"></span></div>
+  </div>
+</div>
+
+<div class="grid cols-2" style="margin-top:18px">
+  <div class="card">
+    <div class="section-title">Upcoming events</div>
+    {% if upcoming_events %}
+    <table class="table">
+      <thead><tr><th>Event</th><th>Start</th><th>Status</th><th>Venue</th></tr></thead>
+      <tbody>
+      {% for e in upcoming_events %}
+      <tr><td><a href="{% url 'event_detail' e.id %}">{{ e.name }}</a></td>
+          <td>{{ e.start_date|date:"Y-m-d" }}</td>
+          <td><span class="badge b-{{ e.status }}">{{ e.get_status_display }}</span></td>
+          <td>{{ e.venue|default:"—" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="empty">No upcoming events.</p>{% endif %}
+  </div>
+  <div class="card">
+    <div class="section-title">Pending approvals</div>
+    {% if pending_approvals %}
+    <table class="table">
+      <thead><tr><th>Event</th><th>Manager</th><th>Budget</th></tr></thead>
+      <tbody>
+      {% for e in pending_approvals %}
+      <tr><td><a href="{% url 'event_detail' e.id %}">{{ e.name }}</a></td>
+          <td>{{ e.manager|default:"—" }}</td>
+          <td>{{ e.budget|floatformat:0 }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="empty">No events awaiting approval.</p>{% endif %}
+  </div>
+</div>
+
+<div class="grid cols-2" style="margin-top:18px">
+  <div class="card">
+    <div class="section-title">Critical tasks</div>
+    {% if critical_tasks %}
+    <table class="table">
+      <thead><tr><th>Task</th><th>Event</th><th>Due</th><th>Assignee</th></tr></thead>
+      <tbody>
+      {% for t in critical_tasks %}
+      <tr><td>{{ t.title }}</td><td><a href="{% url 'event_detail' t.event.id %}">{{ t.event.name }}</a></td>
+          <td>{{ t.due_date|date:"Y-m-d" }}</td><td>{{ t.assigned_to|default:"—" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="empty">No open critical tasks.</p>{% endif %}
+  </div>
+  <div class="card">
+    <div class="section-title">Recent activity</div>
+    {% if recent_activity %}
+    <table class="table">
+      <thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for log in recent_activity %}
+      <tr><td>{{ log.timestamp|date:"M d, H:i" }}</td><td>{{ log.user|default:"—" }}</td><td>{{ log.action }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="empty">No recent activity.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

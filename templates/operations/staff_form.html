@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Assign staff — EventOps{% endblock %}
+{% block heading %}Assign staff member{% endblock %}
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-row"><label>Staff member</label>{{ form.staff }}</div>
+  <div class="form-row"><label>Role</label>{{ form.role }}</div>
+  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
+  <div class="actions" style="margin-top:16px">
+    <button type="submit" class="btn btn-primary">Assign staff</button>
+    <a href="{% url 'event_detail' event.id %}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}

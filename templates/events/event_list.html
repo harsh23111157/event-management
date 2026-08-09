@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Events — EventOps{% endblock %}
+{% block heading %}Events{% endblock %}
+{% block content %}
+<div class="page-actions">
+  <div>
+    <a href="?status=" class="btn btn-sm {% if not current_status %}btn-primary{% endif %}">All</a>
+    {% for val,label in status_choices %}
+    <a href="?status={{ val }}" class="btn btn-sm {% if current_status == val %}btn-primary{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  {% if user.is_admin or user.is_event_manager %}
+  <a href="{% url 'event_create' %}" class="btn btn-primary">+ New Event</a>
+  {% endif %}
+</div>
+<table class="table">
+  <thead><tr><th>Name</th><th>Type</th><th>Start</th><th>Venue</th><th>Manager</th><th>Status</th><th>Budget</th></tr></thead>
+  <tbody>
+  {% for e in events %}
+  <tr>
+    <td><a href="{% url 'event_detail' e.id %}">{{ e.name }}</a></td>
+    <td>{{ e.get_event_type_display }}</td>
+    <td>{{ e.start_date|date:"Y-m-d" }}</td>
+    <td>{{ e.venue|default:"—" }}</td>
+    <td>{{ e.manager|default:"—" }}</td>
+    <td><span class="badge b-{{ e.status }}">{{ e.get_status_display }}</span></td>
+    <td>{{ e.budget|floatformat:0 }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="7" class="empty">No events found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

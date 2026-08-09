@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }} — EventOps{% endblock %}
+{% block heading %}{{ event.name }}{% endblock %}
+{% block content %}
+<div class="page-actions">
+  <a href="{% url 'event_list' %}" class="btn btn-sm">Back to events</a>
+  <div>
+    {% if can_manage and event.is_editable %}
+      <a href="{% url 'event_edit' event.id %}" class="btn btn-sm">Edit</a>
+    {% endif %}
+    {% if can_manage and event.status == 'DRAFT' %}
+      <form method="post" action="{% url 'event_workflow' event.id 'submit' %}" style="display:inline">
+        {% csrf_token %}<button class="btn btn-sm btn-primary">Submit for approval</button>
+      </form>
+    {% endif %}
+    {% if can_approve and event.status == 'SUBMITTED' %}
+      <form method="post" action="{% url 'event_workflow' event.id 'approve' %}" style="display:inline">
+        {% csrf_token %}<button class="btn btn-sm btn-primary">Approve</button>
+      </form>
+      <form method="post" action="{% url 'event_workflow' event.id 'reject' %}" style="display:inline">
+        {% csrf_token %}<input type="text" name="reason" placeholder="Reason" class="form-control" style="width:200px;display:inline-block">
+        <button class="btn btn-sm btn-danger">Reject</button>
+      </form>
+    {% endif %}
+    {% if can_manage and event.status == 'APPROVED' %}
+      <form method="post" action="{% url 'event_workflow' event.id 'start' %}" style="display:inline">
+        {% csrf_token %}<button class="btn btn-sm btn-primary">Start event</button>
+      </form>
+    {% endif %}
+    {% if can_manage and event.status == 'IN_PROGRESS' %}
+      <form method="post" action="{% url 'event_workflow' event.id 'complete' %}" style="display:inline">
+        {% csrf_token %}<button class="btn btn-sm btn-primary">Complete event</button>
+      </form>
+    {% endif %}
+    {% if can_manage and event.status == 'REJECTED' %}
+      <form method="post" action="{% url 'event_workflow' event.id 'return_draft' %}" style="display:inline">
+        {% csrf_token %}<button class="btn btn-sm">Return to draft</button>
+      </form>
+    {% endif %}
+    {% if can_manage and event.status not in 'COMPLETED,CANCELLED' %}
+      <form method="post" action="{% url 'event_workflow' event.id 'cancel' %}" style="display:inline">
+        {% csrf_token %}<button class="btn btn-sm btn-danger" onclick="return confirm('Cancel this event?')">Cancel</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <div class="section-title">Event details</div>
+  <div class="detail-row"><span class="k">Status</span><span class="badge b-{{ event.status }}">{{ event.get_status_display }}</span></div>
+  <div class="detail-row"><span class="k">Type</span><span>{{ event.get_event_type_display }}</span></div>
+  <div class="detail-row"><span class="k">Start</span><span>{{ event.start_date|date:"Y-m-d H:i" }}</span></div>
+  <div class="detail-row"><span class="k">End</span><span>{{ event.end_date|date:"Y-m-d H:i" }}</span></div>
+  <div class="detail-row"><span class="k">Venue</span><span>{{ event.venue }} (capacity {{ event.venue.capacity }})</span></div>
+  <div class="detail-row"><span class="k">Manager</span><span>{{ event.manager|default:"—" }}</span></div>
+  <div class="detail-row"><span class="k">Expected attendees</span><span>{{ event.expected_attendees }}</span></div>
+  <div class="detail-row"><span class="k">Budget</span><span>{{ event.budget|floatformat:0 }}</span></div>
+  <div class="detail-row"><span class="k">Description</span><span>{{ event.description|default:"—" }}</span></div>
+  {% if event.rejection_reason %}<div class="detail-row"><span class="k">Rejection reason</span><span>{{ event.rejection_reason }}</span></div>{% endif %}
+</div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <div class="section-title">Tasks ({{ tasks|length }})</div>
+    {% if can_manage %}<a href="{% url 'task_create' event.id %}" class="btn btn-sm">+ Add task</a>{% endif %}
+    <table class="table" style="margin-top:10px">
+      <thead><tr><th>Task</th><th>Priority</th><th>Status</th><th>Due</th><th>Assignee</th></tr></thead>
+      <tbody>
+      {% for t in tasks %}
+      <tr><td><a href="{% url 'task_edit' t.id %}">{{ t.title }}</a></td>
+          <td><span class="badge b-{{ t.priority }}">{{ t.get_priority_display }}</span></td>
+          <td><span class="badge b-{{ t.status }}">{{ t.get_status_display }}</span></td>
+          <td>{{ t.due_date|date:"Y-m-d" }}</td>
+          <td>{{ t.assigned_to|default:"—" }}</td></tr>
+      {% empty %}<tr><td colspan="5" class="empty">No tasks yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">Staff ({{ staff_list|length }})</div>
+    {% if can_manage %}<a href="{% url 'staff_create' event.id %}" class="btn btn-sm">+ Assign staff</a>{% endif %}
+    <table class="table" style="margin-top:10px">
+      <thead><tr><th>Staff member</th><th>Role</th><th>Assigned</th></tr></thead>
+      <tbody>
+      {% for s in staff_list %}
+      <tr><td>{{ s.staff }}</td><td>{{ s.role|default:"—" }}</td><td>{{ s.assigned_at|date:"Y-m-d" }}</td></tr>
+      {% empty %}<tr><td colspan="3" class="empty">No staff assigned.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="grid cols-2" style="margin-top:16px">
+  <div class="card">
+    <div class="section-title">Vendors ({{ vendors|length }})</div>
+    {% if can_manage %}<a href="{% url 'event_vendor_create' event.id %}" class="btn btn-sm">+ Assign vendor</a>{% endif %}
+    <table class="table" style="margin-top:10px">
+      <thead><tr><th>Vendor</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for v in vendors %}
+      <tr><td>{{ v.vendor }}</td><td>{{ v.contract_amount|floatformat:0 }}</td>
+          <td><span class="badge b-{{ v.status }}">{{ v.get_status_display }}</span></td></tr>
+      {% empty %}<tr><td colspan="3" class="empty">No vendors assigned.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">Expenses ({{ expenses|length }})</div>
+    <table class="table">
+      <thead><tr><th>Description</th><th>Category</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for ex in expenses %}
+      <tr><td>{{ ex.description }}</td><td>{{ ex.get_category_display }}</td>
+          <td>{{ ex.amount|floatformat:0 }}</td>
+          <td><span class="badge b-{{ ex.status }}">{{ ex.get_status_display }}</span></td></tr>
+      {% empty %}<tr><td colspan="4" class="empty">No expenses recorded.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    <div style="margin-top:10px;font-size:13px">
+      Approved: <strong>{{ approved_expenses_total|floatformat:0 }}</strong> |
+      Remaining: <strong>{{ remaining_budget|floatformat:0 }}</strong> |
+      Utilization: <strong>{{ utilization }}%</strong>
+    </div>
+  </div>
+</div>
+{% endblock %}

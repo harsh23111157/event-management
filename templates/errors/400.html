@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Bad request — EventOps{% endblock %}
+{% block heading %}Bad request (400){% endblock %}
+{% block content %}<p>The request could not be understood. Please check the URL and try again.</p>
+<a href="{% url 'dashboard' %}" class="btn btn-primary">Back to dashboard</a>{% endblock %}

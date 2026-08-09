@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Not found — EventOps{% endblock %}
+{% block heading %}Page not found (404){% endblock %}
+{% block content %}<p>The page you were looking for doesn't exist.</p>
+<a href="{% url 'dashboard' %}" class="btn btn-primary">Back to dashboard</a>{% endblock %}

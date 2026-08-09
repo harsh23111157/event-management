@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Vendor Report — EventOps{% endblock %}
+{% block heading %}Vendor Report{% endblock %}
+{% block content %}
+<div class="grid cols-4">
+  <div class="stat"><div class="label">Total vendors</div><div class="value">{{ report.total_vendors }}</div></div>
+  <div class="stat success"><div class="label">Active vendors</div><div class="value">{{ report.active_vendors }}</div></div>
+  <div class="stat"><div class="label">Total assignments</div><div class="value">{{ report.total }}</div></div>
+  <div class="stat"><div class="label">Total contract value</div><div class="value">{{ report.total_value|floatformat:0 }}</div></div>
+</div>
+<div class="grid cols-4" style="margin-top:16px">
+  <div class="stat"><div class="label">Planned</div><div class="value">{{ report.planned }}</div></div>
+  <div class="stat success"><div class="label">Confirmed</div><div class="value">{{ report.confirmed }}</div></div>
+  <div class="stat success"><div class="label">Completed</div><div class="value">{{ report.completed }}</div></div>
+  <div class="stat danger"><div class="label">Cancelled</div><div class="value">{{ report.cancelled }}</div></div>
+</div>
+{% endblock %}

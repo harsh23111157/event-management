@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ form.instance.id|yesno:"Edit vendor,New vendor" }} — EventOps{% endblock %}
+{% block heading %}{{ form.instance.id|yesno:"Edit vendor,New vendor" }}{% endblock %}
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-row"><label>Name</label>{{ form.name }}</div>
+  <div class="form-grid">
+    <div class="form-row"><label>Service type</label>{{ form.service_type }}</div>
+    <div class="form-row"><label>Contact person</label>{{ form.contact_person }}</div>
+    <div class="form-row"><label>Email</label>{{ form.email }}</div>
+    <div class="form-row"><label>Phone</label>{{ form.phone }}</div>
+    <div class="form-row"><label>Active</label>{{ form.is_active }}</div>
+  </div>
+  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
+  <div class="actions" style="margin-top:16px">
+    <button type="submit" class="btn btn-primary">Save vendor</button>
+    <a href="{% url 'vendor_list' %}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}

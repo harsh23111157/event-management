@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Event Report — EventOps{% endblock %}
+{% block heading %}Event Status Report{% endblock %}
+{% block content %}
+<div class="grid cols-4">
+  <div class="stat"><div class="label">Total events</div><div class="value">{{ report.total }}</div></div>
+  <div class="stat"><div class="label">Draft</div><div class="value">{{ report.draft }}</div></div>
+  <div class="stat"><div class="label">Submitted</div><div class="value">{{ report.submitted }}</div></div>
+  <div class="stat success"><div class="label">Approved</div><div class="value">{{ report.approved }}</div></div>
+</div>
+<div class="grid cols-4" style="margin-top:16px">
+  <div class="stat warn"><div class="label">In progress</div><div class="value">{{ report.in_progress }}</div></div>
+  <div class="stat success"><div class="label">Completed</div><div class="value">{{ report.completed }}</div></div>
+  <div class="stat danger"><div class="label">Cancelled</div><div class="value">{{ report.cancelled }}</div></div>
+  <div class="stat danger"><div class="label">Rejected</div><div class="value">{{ report.rejected }}</div></div>
+</div>
+{% endblock %}

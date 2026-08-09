@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ form.instance.id|yesno:"Edit user,New user" }} — EventOps{% endblock %}
+{% block heading %}{{ form.instance.id|yesno:"Edit user,New user" }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:680px">
+<form method="post">{% csrf_token %}
+  <div class="form-grid">
+    <div class="form-row"><label>Username</label>{{ form.username }}{{ form.username.errors }}</div>
+    <div class="form-row"><label>Email</label>{{ form.email }}{{ form.email.errors }}</div>
+    <div class="form-row"><label>First name</label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+    <div class="form-row"><label>Last name</label>{{ form.last_name }}{{ form.last_name.errors }}</div>
+    <div class="form-row"><label>Role</label>{{ form.role }}{{ form.role.errors }}</div>
+    <div class="form-row"><label>Phone</label>{{ form.phone }}{{ form.phone.errors }}</div>
+    <div class="form-row"><label>Active</label>{{ form.is_active }}{{ form.is_active.errors }}</div>
+    <div class="form-row"><label>Password</label>{{ form.password }}<div class="help">{{ form.password.help_text }}</div>{{ form.password.errors }}</div>
+  </div>
+  <div class="actions">
+    <button class="btn btn-primary">Save</button>
+    <a href="{% url 'users' %}" class="btn">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}

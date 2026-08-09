@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Assign vendor — EventOps{% endblock %}
+{% block heading %}Assign vendor to event{% endblock %}
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-row"><label>Vendor</label>{{ form.vendor }}</div>
+  <div class="form-grid">
+    <div class="form-row"><label>Contract amount</label>{{ form.contract_amount }}</div>
+    <div class="form-row"><label>Status</label>{{ form.status }}</div>
+  </div>
+  <div class="form-row"><label>Service description</label>{{ form.service_description }}</div>
+  {% for f in form %}{% if f.errors %}<div class="error">{{ f.label }}: {{ f.errors|join:", " }}</div>{% endif %}{% endfor %}
+  <div class="actions" style="margin-top:16px">
+    <button type="submit" class="btn btn-primary">Assign vendor</button>
+    <a href="{% url 'event_detail' event.id %}" class="btn">Cancel</a>
+  </div>
+</form>
+{% endblock %}

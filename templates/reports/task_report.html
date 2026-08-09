@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Task Report — EventOps{% endblock %}
+{% block heading %}Task Report{% endblock %}
+{% block content %}
+<div class="grid cols-4">
+  <div class="stat"><div class="label">Total tasks</div><div class="value">{{ report.total }}</div></div>
+  <div class="stat"><div class="label">To do</div><div class="value">{{ report.todo }}</div></div>
+  <div class="stat warn"><div class="label">In progress</div><div class="value">{{ report.in_progress }}</div></div>
+  <div class="stat success"><div class="label">Completed</div><div class="value">{{ report.completed }}</div></div>
+</div>
+<div class="grid cols-2" style="margin-top:16px">
+  <div class="stat danger"><div class="label">Blocked</div><div class="value">{{ report.blocked }}</div></div>
+  <div class="stat danger"><div class="label">Overdue</div><div class="value">{{ report.overdue }}</div></div>
+</div>
+{% endblock %}

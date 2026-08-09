@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Audit logs — EventOps{% endblock %}
+{% block heading %}Audit logs{% endblock %}
+{% block content %}
+<p class="muted">A record of important actions performed on the platform.</p>
+<table class="table">
+  <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Entity</th><th>Description</th></tr></thead>
+  <tbody>
+  {% for log in page_obj %}
+    <tr>
+      <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+      <td>{{ log.user|default:"—" }}</td>
+      <td><span class="badge b-draft">{{ log.action }}</span></td>
+      <td>{{ log.entity_type }} {% if log.entity_id %}#{{ log.entity_id }}{% endif %}</td>
+      <td>{{ log.description }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5" class="empty">No audit entries yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if page_obj.has_other_pages %}
+<div class="actions">
+  {% if page_obj.has_previous %}<a class="btn btn-sm" href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+  <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a class="btn btn-sm" href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

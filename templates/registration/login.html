@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Sign in — EventOps{% endblock %}
+{% block auth %}
+<div class="auth-card">
+  <h1>EventOps</h1>
+  <p class="muted">Event Operations Management Platform</p>
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+    <label>Username</label>
+    {{ form.username }}
+    <label>Password</label>
+    {{ form.password }}
+    <button type="submit" class="btn btn-primary">Sign in</button>
+  </form>
+  <div class="demo-creds">
+    <strong>Demo accounts</strong><br>
+    admin / manager / staff1 / staff2 / finance<br>
+    Password: <code>EventOps2026!</code>
+  </div>
+</div>
+{% endblock %}

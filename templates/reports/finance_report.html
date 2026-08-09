@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Finance Report — EventOps{% endblock %}
+{% block heading %}Finance Report{% endblock %}
+{% block content %}
+<div class="grid cols-4">
+  <div class="stat"><div class="label">Total budget</div><div class="value">{{ report.total_budget|floatformat:0 }}</div></div>
+  <div class="stat success"><div class="label">Approved expenses</div><div class="value">{{ report.approved_expenses|floatformat:0 }}</div></div>
+  <div class="stat warn"><div class="label">Pending ({{ report.pending_count }})</div><div class="value">{{ report.pending_expenses|floatformat:0 }}</div></div>
+  <div class="stat danger"><div class="label">Rejected ({{ report.rejected_count }})</div><div class="value">{{ report.rejected_expenses|floatformat:0 }}</div></div>
+</div>
+<div class="grid cols-2" style="margin-top:16px">
+  <div class="stat"><div class="label">Remaining budget</div><div class="value">{{ report.remaining_budget|floatformat:0 }}</div></div>
+  <div class="stat {% if report.utilization_pct >= 90 %}danger{% elif report.utilization_pct >= 80 %}warn{% endif %}">
+    <div class="label">Budget utilization</div><div class="value">{{ report.utilization_pct }}%</div>
+    <div class="progress {% if report.utilization_pct >= 90 %}danger{% elif report.utilization_pct >= 80 %}warn{% else %}success{% endif %}" style="margin-top:8px"><span style="width:{{ report.utilization_pct|floatformat:0 }}%"></span></div>
+  </div>
+</div>
+{% endblock %}

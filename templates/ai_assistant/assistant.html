@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant — EventOps{% endblock %}
+{% block heading %}AI Assistant{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:16px">
+  <div class="section-title">Generate event analysis</div>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-row">
+      <label>Select an event to analyze</label>
+      <select name="event_id" class="form-control">
+        {% for e in events %}
+        <option value="{{ e.id }}">{{ e.name }} ({{ e.get_status_display }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Analyze event</button>
+  </form>
+</div>
+{% if result %}
+<div class="card">
+  <div class="section-title">AI Analysis</div>
+  {% if result.error %}
+  <div class="alert alert-error">{{ result.error }}</div>
+  {% else %}
+  <div class="ai-output">{{ result.summary }}</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

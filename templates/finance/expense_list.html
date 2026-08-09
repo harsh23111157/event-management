@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Expenses — EventOps{% endblock %}
+{% block heading %}Expenses{% endblock %}
+{% block content %}
+<div class="page-actions">
+  <div>
+    <a href="{% url 'expense_list' %}" class="btn btn-sm {% if not request.GET.status %}btn-primary{% endif %}">All</a>
+    {% for val,label in status_choices %}
+    <a href="?status={{ val }}" class="btn btn-sm {% if request.GET.status == val %}btn-primary{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  {% if can_approve %}
+  <a href="{% url 'expense_create' %}" class="btn btn-primary">+ New Expense</a>
+  {% endif %}
+</div>
+<table class="table">
+  <thead><tr><th>Description</th><th>Event</th><th>Category</th><th>Amount</th><th>Status</th><th>Created by</th>{% if can_approve %}<th>Actions</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for e in expenses %}
+  <tr>
+    <td>{{ e.description }}</td>
+    <td><a href="{% url 'event_detail' e.event.id %}">{{ e.event.name }}</a></td>
+    <td>{{ e.get_category_display }}</td>
+    <td>{{ e.amount|floatformat:0 }}</td>
+    <td><span class="badge b-{{ e.status }}">{{ e.get_status_display }}</span></td>
+    <td>{{ e.created_by|default:"—" }}</td>
+    {% if can_approve %}
+    <td>
+      {% if e.status == 'PENDING' %}
+      <form method="post" action="{% url 'expense_approve' e.id %}" style="display:inline">
+        {% csrf_token %}<button class="btn btn-sm btn-primary">Approve</button>
+      </form>
+      <form method="post" action="{% url 'expense_reject' e.id %}" style="display:inline">
+        {% csrf_token %}<input type="text" name="reason" placeholder="Reason" class="form-control" style="width:160px;display:inline-block">
+        <button class="btn btn-sm btn-danger">Reject</button>
+      </form>
+      {% endif %}
+    </td>
+    {% endif %}
+  </tr>
+  {% empty %}
+  <tr><td colspan="{% if can_approve %}7{% else %}6{% endif %}" class="empty">No expenses found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

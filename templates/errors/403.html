@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Forbidden — EventOps{% endblock %}
+{% block heading %}Access denied (403){% endblock %}
+{% block content %}<p>You don't have permission to view this page.</p>
+<a href="{% url 'dashboard' %}" class="btn btn-primary">Back to dashboard</a>{% endblock %}
