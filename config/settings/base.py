@@ -106,9 +106,10 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.WhiteNoiseStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
+
 
 # Allow WhiteNoise to find files in STATICFILES_DIRS even without collectstatic.
 WHITENOISE_USE_FINDERS = True
