@@ -493,6 +493,9 @@
 <!-- ============================================================= -->
 <!-- 2. EVENT MANAGER DASHBOARD VIEW -->
 <!-- ============================================================= -->
+<!-- ============================================================= -->
+<!-- 2. EVENT MANAGER DASHBOARD VIEW -->
+<!-- ============================================================= -->
 {% elif role == 'EVENT_MANAGER' %}
 
   <div class="grid cols-4" style="margin-bottom: 24px;">
@@ -514,7 +517,7 @@
       <div class="stat-body">
         <div class="stat-label">Tasks Finished</div>
         <div class="stat-val">{{ summary.completed_tasks }}</div>
-        <div class="stat-meta">of {{ summary.total_tasks }} assigned checklist items</div>
+        <div class="stat-meta">of {{ summary.total_tasks }} checklist items</div>
       </div>
     </div>
 
@@ -568,7 +571,7 @@
   </div>
 
   <!-- UPCOMING EVENTS TABLE -->
-  <div class="card" style="padding: 0; overflow: hidden;">
+  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
     <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
       <div>
         <div class="card-title">My Managed Events</div>
@@ -585,6 +588,7 @@
             <th>Budget</th>
             <th>AI Health</th>
             <th>Status</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -606,6 +610,7 @@
                 {% endif %}
               </td>
               <td><span class="badge b-{{ ev.status|lower }}">{{ ev.get_status_display }}</span></td>
+              <td><a href="{% url 'event_detail' ev.id %}" class="btn btn-sm">Manage &rarr;</a></td>
             </tr>
           {% endfor %}
         </tbody>
@@ -617,6 +622,58 @@
       </div>
     {% endif %}
   </div>
+
+  <!-- CRITICAL & OVERDUE TASKS QUEUE -->
+  {% if critical_tasks or overdue_tasks %}
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="card-title">Tasks Requiring Attention</div>
+          <div class="card-subtitle">Critical priority and overdue execution items</div>
+        </div>
+        <a href="{% url 'task_list' %}" class="btn btn-sm btn-secondary">All Tasks &rarr;</a>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Task Title</th>
+            <th>Event</th>
+            <th>Assignee</th>
+            <th>Due Date</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in critical_tasks %}
+            <tr>
+              <td><strong>{{ t.title }}</strong></td>
+              <td><a href="{% url 'event_detail' t.event.id %}">{{ t.event.name }}</a></td>
+              <td>{{ t.assigned_to.get_full_name|default:t.assigned_to.username|default:"Unassigned" }}</td>
+              <td style="color: var(--danger); font-size: 12px;">{{ t.due_date|date:"M d, H:i" }}</td>
+              <td><span class="badge b-critical">{{ t.get_priority_display }}</span></td>
+              <td><span class="badge b-{{ t.status|lower }}">{{ t.get_status_display }}</span></td>
+              <td><a href="{% url 'task_edit' t.id %}" class="btn btn-sm">Edit</a></td>
+            </tr>
+          {% endfor %}
+          {% for t in overdue_tasks %}
+            {% if t not in critical_tasks %}
+              <tr>
+                <td><strong>{{ t.title }}</strong></td>
+                <td><a href="{% url 'event_detail' t.event.id %}">{{ t.event.name }}</a></td>
+                <td>{{ t.assigned_to.get_full_name|default:t.assigned_to.username|default:"Unassigned" }}</td>
+                <td style="color: var(--danger); font-size: 12px;">{{ t.due_date|date:"M d, H:i" }}</td>
+                <td><span class="badge b-{{ t.priority|lower }}">{{ t.get_priority_display }}</span></td>
+                <td><span class="badge b-{{ t.status|lower }}">{{ t.get_status_display }}</span></td>
+                <td><a href="{% url 'task_edit' t.id %}" class="btn btn-sm">Edit</a></td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
 
 <!-- ============================================================= -->
 <!-- 3. FINANCE DASHBOARD VIEW -->
@@ -631,7 +688,7 @@
       <div class="stat-body">
         <div class="stat-label">Total Allocated</div>
         <div class="stat-val">₹{{ summary.total_budget|floatformat:0 }}</div>
-        <div class="stat-meta">Across all approved events</div>
+        <div class="stat-meta">Across active events</div>
       </div>
     </div>
 
@@ -652,8 +709,8 @@
       </div>
       <div class="stat-body">
         <div class="stat-label">Pending Approval</div>
-        <div class="stat-val">{{ summary.pending_count }}</div>
-        <div class="stat-meta">₹{{ summary.pending_sum|floatformat:0 }} in review</div>
+        <div class="stat-val">{{ summary.pending_approvals_count }}</div>
+        <div class="stat-meta">₹{{ summary.pending_approvals_sum|floatformat:0 }} in review</div>
       </div>
     </div>
 
@@ -695,31 +752,163 @@
     </div>
   </div>
 
+  <!-- PENDING APPROVALS QUEUE TABLE -->
+  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">Pending Expense Approvals ({{ pending_approvals_queue|length }})</div>
+        <div class="card-subtitle">Line-item requests awaiting financial clearance</div>
+      </div>
+      <a href="{% url 'expense_list' %}?status=PENDING" class="btn btn-sm btn-secondary">Full Expense List</a>
+    </div>
+    {% if pending_approvals_queue %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Expense / Description</th>
+            <th>Event</th>
+            <th>Category</th>
+            <th>Requested By</th>
+            <th>Amount</th>
+            <th>Quick Decisions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for exp in pending_approvals_queue %}
+            <tr>
+              <td>
+                <strong>{{ exp.description }}</strong>
+                <div style="font-size: 11.5px; color: var(--muted);">Requested {{ exp.created_at|date:"M d, Y · H:i" }}</div>
+              </td>
+              <td><a href="{% url 'event_detail' exp.event.id %}#finance">{{ exp.event.name }}</a></td>
+              <td><span class="badge b-medium">{{ exp.get_category_display }}</span></td>
+              <td>{{ exp.created_by.get_full_name|default:exp.created_by.username }}</td>
+              <td style="font-family: var(--font-mono); font-weight: 700; font-size: 14px;">₹{{ exp.amount|floatformat:2 }}</td>
+              <td>
+                <div style="display: flex; gap: 6px;">
+                  <form action="{% url 'expense_approve' exp.id %}" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                  </form>
+                  <button type="button" class="btn btn-danger btn-sm" onclick="openExpenseRejectModal('{{ exp.id }}', '{{ exp.description|escapejs }}')">Reject</button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">✓</div>
+        <div>No pending expenses awaiting approval. All accounts balanced.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- HIGH UTILIZATION WATCHLIST & RECENT EXPENSES -->
+  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 14px 18px; border-bottom: 1px solid var(--line);">
+        <div class="card-title">Budget Watchlist (&ge; 80% Spent)</div>
+      </div>
+      {% if high_util_events %}
+        <div style="padding: 12px 18px; display:flex; flex-direction:column; gap: 12px;">
+          {% for item in high_util_events %}
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:4px;">
+                <a href="{% url 'event_detail' item.event.id %}">{{ item.event.name }}</a>
+                <span>{{ item.utilization }}%</span>
+              </div>
+              <div class="progress-bar" style="height: 6px;">
+                <div class="progress-fill {% if item.utilization >= 95 %}danger{% else %}warn{% endif %}" style="width: {{ item.utilization }}%;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted); margin-top:3px;">
+                <span>Spent: ₹{{ item.spent|floatformat:0 }}</span>
+                <span>Budget: ₹{{ item.budget|floatformat:0 }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">✓</div>
+          <div>All event budgets operating within healthy limits.</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 14px 18px; border-bottom: 1px solid var(--line);">
+        <div class="card-title">Recent Settled Expenses</div>
+      </div>
+      {% if recent_expenses %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for re in recent_expenses %}
+              <tr>
+                <td>
+                  <div style="font-weight:600; font-size:13px;">{{ re.description }}</div>
+                  <div style="font-size:11px; color:var(--muted);">{{ re.event.name }}</div>
+                </td>
+                <td style="font-family:var(--font-mono); font-weight:600;">₹{{ re.amount|floatformat:0 }}</td>
+                <td><span class="badge b-{{ re.status|lower }}">{{ re.get_status_display }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">💳</div>
+          <div>No settled expenses logged yet.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
 <!-- ============================================================= -->
 <!-- 4. STAFF DASHBOARD VIEW -->
 <!-- ============================================================= -->
 {% elif role == 'STAFF' %}
 
-  <div class="grid cols-3" style="margin-bottom: 24px;">
+  <!-- STAFF KPI CARDS -->
+  <div class="grid cols-4" style="margin-bottom: 24px;">
     <div class="stat-card">
       <div class="stat-icon-wrap indigo">
         <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
       </div>
       <div class="stat-body">
         <div class="stat-label">My Assigned Tasks</div>
-        <div class="stat-val">{{ summary.my_total_tasks }}</div>
-        <div class="stat-meta">{{ summary.my_completed_tasks }} finished</div>
+        <div class="stat-val">{{ summary.total_tasks }}</div>
+        <div class="stat-meta">{{ summary.completed_tasks }} completed</div>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon-wrap {% if summary.my_overdue_tasks > 0 %}rose{% else %}emerald{% endif %}">
+      <div class="stat-icon-wrap amber">
         <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div class="stat-body">
+        <div class="stat-label">Pending / In Progress</div>
+        <div class="stat-val">{{ summary.pending_tasks }}</div>
+        <div class="stat-meta">{{ summary.critical_tasks }} critical priority</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap {% if summary.overdue_tasks > 0 %}rose{% else %}emerald{% endif %}">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <div class="stat-body">
         <div class="stat-label">Overdue Tasks</div>
-        <div class="stat-val">{{ summary.my_overdue_tasks }}</div>
-        <div class="stat-meta">Past due date items</div>
+        <div class="stat-val">{{ summary.overdue_tasks }}</div>
+        <div class="stat-meta">{% if summary.overdue_tasks > 0 %}Immediate action required{% else %}All deadlines on track{% endif %}</div>
       </div>
     </div>
 
@@ -728,13 +917,168 @@
         <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
       </div>
       <div class="stat-body">
-        <div class="stat-label">Upcoming Shifts</div>
-        <div class="stat-val">{{ summary.upcoming_shifts_count }}</div>
-        <div class="stat-meta">Event assignments scheduled</div>
+        <div class="stat-label">Assigned Events</div>
+        <div class="stat-val">{{ summary.assigned_events }}</div>
+        <div class="stat-meta">Active crew assignments</div>
       </div>
     </div>
   </div>
 
+  <!-- ON-SITE SHIFT CHECK-IN & QUICK ATTENDANCE -->
+  {% if my_assignments %}
+    <div class="card" style="margin-bottom: 22px;">
+      <div class="card-header">
+        <div>
+          <div class="card-title">My Event Shift Check-In</div>
+          <div class="card-subtitle">On-site attendance logging for your active event assignments</div>
+        </div>
+      </div>
+      <div class="grid cols-3">
+        {% for a in my_assignments %}
+          <div style="background: var(--soft); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px;">
+            <div style="font-weight: 700; font-size: 14.5px; margin-bottom: 2px;">{{ a.event.name }}</div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 6px;">Assigned Role: <strong>{{ a.role }}</strong></div>
+            <div style="font-size: 11.5px; color: var(--ink-secondary); margin-bottom: 10px;">
+              🕒 {{ a.event.start_date|date:"M d, H:i" }} – {{ a.event.end_date|date:"M d, H:i" }}
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <form action="{% url 'attendance_checkin' a.event.id %}" method="post" style="margin: 0; flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Check In</button>
+              </form>
+              <form action="{% url 'attendance_checkout' a.event.id %}" method="post" style="margin: 0; flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm" style="width: 100%;">Check Out</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- STAFF ASSIGNED TASKS HUB -->
+  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 22px;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="card-title">My Assigned Tasks ({{ today_tasks|length }})</div>
+        <div class="card-subtitle">Operational checklist items assigned to you across all events</div>
+      </div>
+      <a href="{% url 'task_list' %}" class="btn btn-sm btn-secondary">Full Task List &rarr;</a>
+    </div>
+    {% if today_tasks %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Task Title & Instructions</th>
+            <th>Event</th>
+            <th>Priority</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in today_tasks %}
+            <tr>
+              <td>
+                <strong>{{ task.title }}</strong>
+                {% if task.description %}
+                  <div style="font-size: 11.5px; color: var(--muted); margin-top: 2px;">{{ task.description|truncatechars:70 }}</div>
+                {% endif %}
+              </td>
+              <td><a href="{% url 'event_detail' task.event.id %}">{{ task.event.name }}</a></td>
+              <td><span class="badge b-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+              <td style="font-size: 12px; {% if task.is_overdue %}color: var(--danger); font-weight: 700;{% endif %}">
+                {{ task.due_date|date:"M d, Y · H:i" }}
+              </td>
+              <td><span class="badge b-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+              <td>
+                <a href="{% url 'task_edit' task.id %}" class="btn btn-primary btn-sm">Update Progress</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">✓</div>
+        <div style="font-weight: 700; margin-bottom: 4px;">No active tasks pending</div>
+        <div style="font-size: 13px; color: var(--muted);">You're all caught up! New tasks assigned by event managers will appear here.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- CHARTS & SCHEDULES -->
+  <div class="grid cols-2" style="margin-bottom: 22px;">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">My Task Completion Status</div>
+          <div class="card-subtitle">Breakdown by current stage</div>
+        </div>
+      </div>
+      <div style="height: 220px; position: relative;">
+        <canvas id="chartStaffTasks"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 14px 18px; border-bottom: 1px solid var(--line);">
+        <div class="card-title">Upcoming Schedules & Runsheets</div>
+      </div>
+      {% if upcoming_schedules %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Activity</th>
+              <th>Event</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sc in upcoming_schedules %}
+              <tr>
+                <td>
+                  <strong>{{ sc.title }}</strong>
+                  {% if sc.location %}<div style="font-size: 11px; color: var(--muted);">📍 {{ sc.location }}</div>{% endif %}
+                </td>
+                <td><a href="{% url 'event_detail' sc.event.id %}#schedule">{{ sc.event.name }}</a></td>
+                <td style="font-size: 12px;">{{ sc.start_time|date:"M d, H:i" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">🕒</div>
+          <div>No upcoming runsheets scheduled.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+{% endif %}
+
+<!-- EXPENSE REJECT MODAL FOR FINANCE USERS -->
+{% if role == 'FINANCE' or role == 'ADMIN' %}
+<div id="expenseRejectModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--r-lg); width:460px; max-width:90vw; padding:24px; box-shadow:var(--shadow-lg);">
+    <h3 style="margin-bottom:8px;">Reject Expense Request</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:14px;" id="expenseRejectDesc"></p>
+    <form id="expenseRejectForm" method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <label class="form-label">Rejection Reason (Required):</label>
+        <textarea name="reason" class="form-control" rows="3" required placeholder="State why this expense request cannot be approved..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" class="btn btn-sm" onclick="closeExpenseRejectModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endif %}
 
 {% endblock %}
@@ -751,6 +1095,20 @@ function switchTab(tabId, btn) {
   const target = document.getElementById(tabId);
   if (target) target.classList.add('active');
   if (btn) btn.classList.add('active');
+}
+
+function openExpenseRejectModal(id, desc) {
+  const descEl = document.getElementById('expenseRejectDesc');
+  const formEl = document.getElementById('expenseRejectForm');
+  const modalEl = document.getElementById('expenseRejectModal');
+  if (descEl) descEl.innerText = 'Expense: ' + desc;
+  if (formEl) formEl.action = '/expenses/' + id + '/reject/';
+  if (modalEl) modalEl.style.display = 'flex';
+}
+
+function closeExpenseRejectModal() {
+  const modalEl = document.getElementById('expenseRejectModal');
+  if (modalEl) modalEl.style.display = 'none';
 }
 
 // =============================================================
@@ -949,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Manager & Finance Charts
+  // Manager Charts
   const ctxMgrStatus = document.getElementById('chartManagerStatus');
   if (ctxMgrStatus && chartsData.status) {
     new Chart(ctxMgrStatus, {
@@ -984,14 +1342,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Finance Charts
   const ctxFinCat = document.getElementById('chartFinanceCategories');
-  if (ctxFinCat && chartsData.categories) {
+  if (ctxFinCat && chartsData.expense_categories) {
     new Chart(ctxFinCat, {
       type: 'doughnut',
       data: {
-        labels: chartsData.categories.labels,
+        labels: chartsData.expense_categories.labels,
         datasets: [{
-          data: chartsData.categories.data,
+          data: chartsData.expense_categories.data,
           backgroundColor: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
           borderWidth: 2,
           borderColor: '#ffffff',
@@ -1002,14 +1361,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const ctxFinMo = document.getElementById('chartFinanceMonthly');
-  if (ctxFinMo && chartsData.monthly) {
+  if (ctxFinMo && chartsData.monthly_expenses) {
     new Chart(ctxFinMo, {
       type: 'bar',
       data: {
-        labels: chartsData.monthly.labels,
+        labels: chartsData.monthly_expenses.labels,
         datasets: [{
           label: 'Total Expenses (₹)',
-          data: chartsData.monthly.data,
+          data: chartsData.monthly_expenses.data,
           backgroundColor: '#10b981',
           borderRadius: 6,
         }]
@@ -1022,6 +1381,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Staff Charts
+  const ctxStaffTasks = document.getElementById('chartStaffTasks');
+  if (ctxStaffTasks && chartsData.tasks) {
+    new Chart(ctxStaffTasks, {
+      type: 'doughnut',
+      data: {
+        labels: chartsData.tasks.labels,
+        datasets: [{
+          data: chartsData.tasks.data,
+          backgroundColor: ['#10b981', '#f59e0b', '#94a3b8', '#ef4444'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 } } }
+        }
+      }
+    });
+  }
 });
 </script>
 {% endblock %}
+

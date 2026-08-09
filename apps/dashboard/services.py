@@ -317,9 +317,10 @@ class DashboardService:
             critical=Count("id", filter=Q(priority=TaskPriority.CRITICAL) & ~Q(status=TaskStatus.COMPLETED)),
         )
 
-        today_tasks = list(my_tasks.exclude(status=TaskStatus.COMPLETED).order_by("priority", "due_date")[:8])
+        today_tasks = list(my_tasks.order_by("status", "due_date")[:15])
         upcoming_schedules = list(Schedule.objects.filter(event__in=assigned_events, start_time__gte=now).select_related("event").order_by("start_time")[:5])
         attendances = list(Attendance.objects.filter(staff=user).select_related("event").order_by("-check_in")[:5])
+
 
         # Active event attendance lookup
         active_attendance = {}

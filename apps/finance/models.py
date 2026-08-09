@@ -60,6 +60,7 @@ class ExpenseService:
     def approve(expense: Expense, user) -> Expense:
         from apps.audit.services import AuditService
         from apps.accounts.permissions import is_finance_or_admin
+        from apps.operations.models import NotificationService, NotificationType
         if not is_finance_or_admin(user):
             raise PermissionError("Only Finance or Admin users can approve expenses.")
         if expense.status != ExpenseStatus.PENDING:
@@ -71,6 +72,15 @@ class ExpenseService:
         expense.save()
         AuditService.log(user, "EXPENSE_APPROVE", "expense", expense.id,
                          f"Approved expense '{expense.description}' for {expense.event.name}")
+        if expense.created_by:
+            approver_name = user.get_full_name() or user.username
+            NotificationService.send(
+                recipient=expense.created_by,
+                title=f"Expense Approved: {expense.description}",
+                message=f"Your expense of ₹{expense.amount:,.2f} for '{expense.event.name}' was approved by {approver_name}.",
+                notification_type=NotificationType.GENERAL,
+                link=f"/events/{expense.event.id}/#finance"
+            )
         return expense
 
     @staticmethod
@@ -78,6 +88,7 @@ class ExpenseService:
     def reject(expense: Expense, user, reason: str) -> Expense:
         from apps.audit.services import AuditService
         from apps.accounts.permissions import is_finance_or_admin
+        from apps.operations.models import NotificationService, NotificationType
         if not is_finance_or_admin(user):
             raise PermissionError("Only Finance or Admin users can reject expenses.")
         if not reason or not reason.strip():
@@ -89,4 +100,14 @@ class ExpenseService:
         expense.save()
         AuditService.log(user, "EXPENSE_REJECT", "expense", expense.id,
                          f"Rejected expense '{expense.description}': {reason}")
+        if expense.created_by:
+            rejecter_name = user.get_full_name() or user.username
+            NotificationService.send(
+                recipient=expense.created_by,
+                title=f"Expense Rejected: {expense.description}",
+                message=f"Your expense of ₹{expense.amount:,.2f} for '{expense.event.name}' was rejected by {rejecter_name}. Reason: {reason}",
+                notification_type=NotificationType.GENERAL,
+                link=f"/events/{expense.event.id}/#finance"
+            )
         return expense
+
