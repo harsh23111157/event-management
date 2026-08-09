@@ -63,11 +63,13 @@ def compute_event_health(event) -> EventHealthScore:
             color="health-amber", badge_css="badge-warning", summary="New event"
         )
 
-    updated_str = str(getattr(event, "updated_at", ""))
-    cache_key = f"event_health_v2_{event_id}_{updated_str}"
+    updated_val = getattr(event, "updated_at", None)
+    updated_ts = int(updated_val.timestamp()) if (updated_val and hasattr(updated_val, "timestamp")) else 0
+    cache_key = f"event_health_v2_{event_id}_{updated_ts}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
+
 
     from apps.finance.models import ExpenseStatus
     from apps.operations.models import TaskStatus, AttendanceStatus
