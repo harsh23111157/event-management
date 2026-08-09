@@ -14,14 +14,24 @@ environ.Env.read_env(BASE_DIR / ".env", overwrite=False)
 
 SECRET_KEY = env("SECRET_KEY", default="dev-insecure-secret-key-change-in-production")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env("ALLOWED_HOSTS")
-CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
-# Auto-include Railway's public domain (set automatically by the platform).
+# Auto-include Railway domains and wildcard support
 _railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
-if _railway_domain and _railway_domain not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(_railway_domain)
-    CSRF_TRUSTED_ORIGINS.append(f"https://{_railway_domain}")
+if _railway_domain:
+    if _railway_domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_railway_domain)
+    if f"https://{_railway_domain}" not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(f"https://{_railway_domain}")
+
+for host in [".up.railway.app", "127.0.0.1", "localhost"]:
+    if host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
+
+for origin in ["https://*.up.railway.app", "http://127.0.0.1", "http://localhost"]:
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
 
 INSTALLED_APPS = [
     "django.contrib.admin",

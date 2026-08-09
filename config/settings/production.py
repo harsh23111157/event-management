@@ -4,11 +4,14 @@ from .base import *  # noqa: F401,F403
 
 env = environ.Env()
 
-DEBUG = False
+# CSRF — supports Railway domains and custom origins
+_custom_csrf = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+for c in _custom_csrf:
+    if c not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(c)
 
-# CSRF — must include the full Railway/production URL (set in Railway env vars).
-# Example: CSRF_TRUSTED_ORIGINS=https://web-production-2c66.up.railway.app
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+if "https://*.up.railway.app" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://*.up.railway.app")
 
 # Security hardening
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

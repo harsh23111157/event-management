@@ -41,23 +41,36 @@
   </form>
 
   <div class="auth-creds-grid">
-    <div style="font-weight: 700; color: var(--ink); margin-bottom: 8px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Demo Role Credentials:</div>
-    <div class="cred-chip">
+    <div style="font-weight: 700; color: var(--ink); margin-bottom: 8px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Click Any Role for 1-Click Fill:</div>
+    <div class="cred-chip" onclick="fillCreds('admin', 'admin12345')" style="cursor: pointer;" title="Click to auto-fill Admin credentials">
       <span>👑 <strong>Admin</strong></span>
       <code>admin / admin12345</code>
     </div>
-    <div class="cred-chip">
+    <div class="cred-chip" onclick="fillCreds('manager', 'manager12345')" style="cursor: pointer;" title="Click to auto-fill Manager credentials">
       <span>🎯 <strong>Event Manager</strong></span>
       <code>manager / manager12345</code>
     </div>
-    <div class="cred-chip">
+    <div class="cred-chip" onclick="fillCreds('finance', 'finance12345')" style="cursor: pointer;" title="Click to auto-fill Finance credentials">
       <span>💳 <strong>Finance</strong></span>
       <code>finance / finance12345</code>
     </div>
-    <div class="cred-chip">
+    <div class="cred-chip" onclick="fillCreds('staff', 'staff12345')" style="cursor: pointer;" title="Click to auto-fill Staff credentials">
       <span>👷 <strong>Staff Member</strong></span>
       <code>staff / staff12345</code>
     </div>
   </div>
 </div>
+
+<script>
+function fillCreds(u, p) {
+  const uInput = document.querySelector('input[name="username"]');
+  const pInput = document.querySelector('input[name="password"]');
+  if (uInput && pInput) {
+    uInput.value = u;
+    pInput.value = p;
+    uInput.style.borderColor = '#4f46e5';
+    pInput.style.borderColor = '#4f46e5';
+  }
+}
+</script>
 {% endblock %}
