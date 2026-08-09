@@ -110,6 +110,10 @@ STORAGES = {
     },
 }
 
+# Allow WhiteNoise to find files in STATICFILES_DIRS even without collectstatic.
+WHITENOISE_USE_FINDERS = True
+
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
