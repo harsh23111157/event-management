@@ -1,7 +1,14 @@
 """Production settings."""
+import environ
 from .base import *  # noqa: F401,F403
 
+env = environ.Env()
+
 DEBUG = False
+
+# CSRF — must include the full Railway/production URL (set in Railway env vars).
+# Example: CSRF_TRUSTED_ORIGINS=https://web-production-2c66.up.railway.app
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 # Security hardening
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
