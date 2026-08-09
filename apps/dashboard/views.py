@@ -60,7 +60,7 @@ class AiBriefingView(LoginRequiredMixin, View):
             Event.objects
             .filter(status__in=active_statuses)
             .prefetch_related(
-                "expenses", "tasks", "staff_assignments", "event_vendors"
+                "expenses", "tasks", "staff_assignments", "vendor_assignments"
             )
             .select_related("venue", "manager")
         )

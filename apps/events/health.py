@@ -162,9 +162,14 @@ def compute_event_health(event) -> EventHealthScore:
 
     # ── 5. Vendor status (10 pts) ────────────────────────────────────────────
     from apps.vendors.models import VendorStatus
-    vendors = event.event_vendors.all()
-    total_vendors = vendors.count()
-    confirmed_vendors = vendors.filter(status=VendorStatus.CONFIRMED).count()
+    vendors = getattr(event, "vendor_assignments", None)
+    if vendors is not None:
+        vendors_qs = vendors.all()
+        total_vendors = vendors_qs.count()
+        confirmed_vendors = vendors_qs.filter(status=VendorStatus.CONFIRMED).count()
+    else:
+        total_vendors = 0
+        confirmed_vendors = 0
 
     if total_vendors == 0:
         vendor_score = 7   # neutral — many events don't need vendors
