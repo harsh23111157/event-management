@@ -3,7 +3,11 @@ from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path
 from django.views.generic.base import RedirectView
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
 
 def health_check(request):
@@ -23,7 +27,11 @@ urlpatterns = [
     path("api/v1/", include("apps.dashboard.urls_api")),
     path("api/v1/", include("apps.ai_assistant.urls_api")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/schema/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="api-docs"),
+    path("api/schema/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc-short"),
     path("", include("apps.accounts.urls")),
     path("dashboard/", include("apps.dashboard.urls")),
     path("events/", include("apps.events.urls")),
