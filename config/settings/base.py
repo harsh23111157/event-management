@@ -8,7 +8,7 @@ env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
 )
-environ.Env.read_env(BASE_DIR / ".env")
+environ.Env.read_env(BASE_DIR / ".env", overwrite=False)
 
 SECRET_KEY = env("SECRET_KEY", default="dev-insecure-secret-key-change-in-production")
 DEBUG = env("DEBUG")
