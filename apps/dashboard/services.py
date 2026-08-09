@@ -112,7 +112,14 @@ class DashboardService:
 
         # Lists
         upcoming_events = list(events_base.filter(start_date__gte=now).exclude(status=EventStatus.CANCELLED).select_related("venue", "manager").order_by("start_date")[:5])
+        from apps.events.health import compute_event_health
+        for ev in upcoming_events:
+            ev.health = compute_event_health(ev)
+
         pending_approvals = list(Event.objects.filter(status=EventStatus.SUBMITTED).select_related("manager", "venue").order_by("updated_at")[:5])
+        for ev in pending_approvals:
+            ev.health = compute_event_health(ev)
+
         critical_tasks = list(EventTask.objects.filter(priority=TaskPriority.CRITICAL).exclude(status=TaskStatus.COMPLETED).select_related("event", "assigned_to").order_by("due_date")[:5])
         recent_activity = list(AuditLog.objects.select_related("user").order_by("-timestamp")[:8])
 
@@ -229,6 +236,10 @@ class DashboardService:
             alerts.append({"type": "danger", "title": "Critical Tasks Pending", "text": f"{task_stats['critical_open']} critical task(s) unresolved.", "url": "/operations/tasks/?priority=CRITICAL"})
 
         upcoming_events = list(events_base.filter(start_date__gte=now).exclude(status=EventStatus.CANCELLED).select_related("venue").order_by("start_date")[:5])
+        from apps.events.health import compute_event_health
+        for ev in upcoming_events:
+            ev.health = compute_event_health(ev)
+
         critical_tasks = list(tasks_qs.filter(priority=TaskPriority.CRITICAL).exclude(status=TaskStatus.COMPLETED).select_related("event", "assigned_to").order_by("due_date")[:5])
         overdue_tasks = list(tasks_qs.exclude(status=TaskStatus.COMPLETED).filter(due_date__lt=now).select_related("event", "assigned_to").order_by("due_date")[:5])
         recent_activity = list(AuditLog.objects.filter(entity_type="event", entity_id__in=events_base.values_list("id", flat=True)).select_related("user").order_by("-timestamp")[:6])

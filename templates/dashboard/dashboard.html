@@ -77,6 +77,87 @@
   </div>
 {% endif %}
 
+<!-- AI EXECUTIVE BRIEFING & HEALTH INTELLIGENCE -->
+{% if role == 'ADMIN' or role == 'EVENT_MANAGER' %}
+<div class="card" style="background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.06)); border: 1px solid rgba(99,102,241,0.25); margin-bottom: 22px; border-radius: 14px; position: relative; overflow: hidden;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 4px 0 12px 0;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; box-shadow: 0 4px 12px rgba(99,102,241,0.35);">
+        🤖
+      </div>
+      <div>
+        <div style="font-size: 16px; font-weight: 800; color: var(--ink); display: flex; align-items: center; gap: 8px;">
+          AI Portfolio Copilot & Health Intelligence
+          <span style="font-size: 10.5px; font-weight: 700; background: rgba(99,102,241,0.15); color: #6366f1; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;">Real-Time</span>
+        </div>
+        <div style="font-size: 13px; color: var(--muted);">Automated multi-factor risk scoring and executive briefing across active operations.</div>
+      </div>
+    </div>
+    <button id="fetchBriefingBtn" class="btn btn-sm btn-primary" onclick="loadAiBriefing()" style="display: flex; align-items: center; gap: 6px;">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Generate AI Briefing
+    </button>
+  </div>
+
+  <div id="aiBriefingContent" style="margin-top: 10px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 13.5px; line-height: 1.65; color: var(--ink);">
+    <div style="display: flex; align-items: center; gap: 10px; color: var(--muted);">
+      <span>💡 Click <strong>"Generate AI Briefing"</strong> to synthesize today's portfolio status, risk trajectory, and critical action items across all events.</span>
+    </div>
+  </div>
+
+  <div id="aiHealthScoresGrid" style="display: none; margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;"></div>
+</div>
+
+<script>
+function loadAiBriefing() {
+  const btn = document.getElementById('fetchBriefingBtn');
+  const box = document.getElementById('aiBriefingContent');
+  const grid = document.getElementById('aiHealthScoresGrid');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> Analyzing Operations...';
+  box.innerHTML = '<div style="color:var(--muted);font-style:italic;">Scanning budget trajectories, task completion velocities, staff assignments, and vendor confirmations...</div>';
+
+  fetch('{% url "ai_briefing" %}')
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh AI Briefing';
+      
+      // Render briefing
+      box.innerHTML = `<div style="font-weight:700;color:var(--accent);margin-bottom:6px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Executive Operations Briefing:</div>
+                       <div style="white-space:pre-line;">${data.briefing}</div>`;
+      
+      // Render scores grid
+      if (data.scores && data.scores.length > 0) {
+        grid.style.display = 'grid';
+        grid.innerHTML = data.scores.map(s => `
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <a href="/events/${s.id}/" style="font-weight:700;font-size:13.5px;color:var(--ink);text-decoration:none;">${s.name}</a>
+              <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:4px;background:rgba(99,102,241,0.15);color:var(--accent);">Grade ${s.grade} · ${s.score}%</span>
+            </div>
+            <div style="height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden;margin-bottom:8px;">
+              <div style="height:100%;width:${s.score}%;background:${s.score >= 75 ? '#22c55e' : s.score >= 50 ? '#f59e0b' : '#ef4444'};"></div>
+            </div>
+            <div style="font-size:12px;color:var(--muted);">${s.summary}</div>
+            ${s.recommendations && s.recommendations.length > 0 ? `
+              <div style="margin-top:6px;font-size:11.5px;color:#d97706;background:rgba(245,158,11,0.08);padding:4px 8px;border-radius:5px;">
+                💡 <strong>Rec:</strong> ${s.recommendations[0]}
+              </div>` : ''}
+          </div>
+        `).join('');
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerHTML = 'Retry AI Briefing';
+      box.innerHTML = `<div style="color:var(--danger);">Failed to load briefing. Please try again.</div>`;
+    });
+}
+</script>
+{% endif %}
+
 <!-- ============================================================= -->
 <!-- 1. ADMIN DASHBOARD VIEW -->
 <!-- ============================================================= -->

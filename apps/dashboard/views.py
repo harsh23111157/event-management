@@ -1,4 +1,7 @@
+import json
+
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
 
@@ -41,3 +44,48 @@ class WorkflowGuideView(LoginRequiredMixin, View):
             "current_role": request.user.role,
         })
 
+
+class AiBriefingView(LoginRequiredMixin, View):
+    """AJAX endpoint — returns a real-time AI portfolio briefing as JSON."""
+
+    def get(self, request):
+        from apps.events.models import Event, EventStatus
+        from apps.events.health import generate_portfolio_briefing, compute_event_health
+
+        active_statuses = [
+            EventStatus.DRAFT, EventStatus.SUBMITTED,
+            EventStatus.APPROVED, EventStatus.IN_PROGRESS,
+        ]
+        events = (
+            Event.objects
+            .filter(status__in=active_statuses)
+            .prefetch_related(
+                "expenses", "tasks", "staff_assignments", "event_vendors"
+            )
+            .select_related("venue", "manager")
+        )
+
+        if request.user.is_event_manager:
+            events = events.filter(manager=request.user)
+
+        scored = [compute_event_health(e) for e in events]
+        briefing_text = generate_portfolio_briefing(list(events))
+
+        return JsonResponse({
+            "briefing": briefing_text,
+            "scores": [
+                {
+                    "id": s.event_id,
+                    "name": s.event_name,
+                    "score": s.score,
+                    "grade": s.grade,
+                    "color": s.color,
+                    "badge_css": s.badge_css,
+                    "summary": s.summary,
+                    "icon": s.icon,
+                    "factors": s.factors,
+                    "recommendations": s.recommendations,
+                }
+                for s in scored
+            ],
+        })
