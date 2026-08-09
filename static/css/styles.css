@@ -102,7 +102,7 @@ body {
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
 }
 
-/* UNIVERSAL SVG CONSTRAINT: No SVG can EVER blow up */
+/* UNIVERSAL SVG CONSTRAINT */
 svg {
   display: inline-block;
   vertical-align: middle;
@@ -414,6 +414,61 @@ code, pre {
 .role-dot.EVENT_MANAGER { background: #10b981; }
 .role-dot.FINANCE { background: #f59e0b; }
 .role-dot.STAFF { background: #0ea5e9; }
+
+/* =============================================================
+   PIPELINE CHIPS BAR (Filter by Status)
+============================================================= */
+.pipeline-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.pipeline-bar::-webkit-scrollbar { display: none; }
+
+.pipeline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--r-full);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all var(--t-fast);
+  box-shadow: var(--shadow-xs);
+}
+.pipeline-chip:hover {
+  background: var(--soft);
+  color: var(--ink);
+  border-color: #cbd5e1;
+}
+.pipeline-chip.active {
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-bg);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.pipeline-count {
+  background: var(--soft);
+  color: var(--ink-secondary);
+  padding: 1px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pipeline-chip.active .pipeline-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
 
 /* =============================================================
    BUTTONS
@@ -955,6 +1010,10 @@ code, pre {
 .b-medium { background: #e0e7ff; color: #3730a3; }
 .b-high { background: #fef3c7; color: #b45309; }
 .b-critical { background: #fee2e2; color: #b91c1c; }
+
+.badge-ready { background: #dcfce7; color: #15803d; font-weight: 800; }
+.badge-warn { background: #fef3c7; color: #b45309; font-weight: 800; }
+.badge-blocked { background: #fee2e2; color: #b91c1c; font-weight: 800; }
 
 /* =============================================================
    READINESS CARD & CHECKLIST
