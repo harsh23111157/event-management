@@ -15,21 +15,7 @@
 
 ---
 
-## ⚡ High-Performance Architecture & Speed Engineering
 
-To achieve instantaneous sub-second response times on cloud environments (e.g. Railway, AWS), EventOps implements end-to-end performance hardening:
-
-| Layer | Optimization Technique | Engineering Implementation | Performance Gain |
-|---|---|---|:---:|
-| 🗄️ **Database Connection** | **Persistent TCP/SSL Connection Pooling** | Configured `CONN_MAX_AGE = 600` (10-minute persistent pool) in `settings/base.py`, eliminating the recurring TCP/SSL handshake latency on remote PostgreSQL servers. | **Saves 150ms–300ms** per request |
-| ⚡ **AI Health Engine** | **Deterministic In-Memory Caching** | Cached `compute_event_health` with a 60-second TTL keyed by `event_id` + `updated_at`, preventing 105+ sequential N+1 database queries on dashboard renders. | **0ms cached / 90% fewer SQL queries** |
-| 📊 **List View Queries** | **Single-Query Conditional Aggregations** | Replaced 6–8 separate `.count()` roundtrips with single SQL `.aggregate()` calls using conditional `Count(filter=...)` and `Sum(filter=...)` across Events, Finance, and Operations. | **75% reduction in DB roundtrips** |
-| 🧭 **Navigation Badges** | **Context Processor Cache Layer** | Added a 15-second TTL in-memory cache for sidebar counters and unread notification queries in `dashboard_nav_context`, ensuring rapid page switching. | **Instant navigation across tabs** |
-| 🔍 **Database Indexing** | **Targeted B-Tree Indexes** | Added composite indexes on frequently filtered columns (`Event.status`, `Event.start_date`, `EventTask.status`, `EventTask.priority`, `EventTask.due_date`, `Expense.status`). | **$O(\log N)$ fast index lookups** |
-| 🚀 **Web Server Concurrency** | **Gunicorn Multithreading** | Configured Gunicorn with `--workers 2 --threads 4` (8 concurrent request threads) to process concurrent HTTP requests in parallel without blocking. | **4x higher concurrent request throughput** |
-| 📦 **Static Asset Delivery** | **WhiteNoise Compression & Caching** | Enabled `CompressedStaticFilesStorage` with Brotli/Gzip compression and long-lived client cache-control headers. | **Fast static asset delivery** |
-
----
 
 ## Application Previews & Visual Showcase
 
@@ -86,6 +72,7 @@ All accounts are pre-seeded with realistic production event data:
    - Standardized endpoints with JWT authentication and live Swagger UI.
 
 ---
+
 
 ## Database Schema & Entity Relationships
 
@@ -210,6 +197,21 @@ $$\text{Health Score} = S_{\text{state}} (20) + S_{\text{budget}} (25) + S_{\tex
     ]
   }
   ```
+
+---
+## ⚡ High-Performance Architecture & Speed Engineering
+
+To achieve instantaneous sub-second response times on cloud environments (e.g. Railway, AWS), EventOps implements end-to-end performance hardening:
+
+| Layer | Optimization Technique | Engineering Implementation | Performance Gain |
+|---|---|---|:---:|
+| 🗄️ **Database Connection** | **Persistent TCP/SSL Connection Pooling** | Configured `CONN_MAX_AGE = 600` (10-minute persistent pool) in `settings/base.py`, eliminating the recurring TCP/SSL handshake latency on remote PostgreSQL servers. | **Saves 150ms–300ms** per request |
+| ⚡ **AI Health Engine** | **Deterministic In-Memory Caching** | Cached `compute_event_health` with a 60-second TTL keyed by `event_id` + `updated_at`, preventing 105+ sequential N+1 database queries on dashboard renders. | **0ms cached / 90% fewer SQL queries** |
+| 📊 **List View Queries** | **Single-Query Conditional Aggregations** | Replaced 6–8 separate `.count()` roundtrips with single SQL `.aggregate()` calls using conditional `Count(filter=...)` and `Sum(filter=...)` across Events, Finance, and Operations. | **75% reduction in DB roundtrips** |
+| 🧭 **Navigation Badges** | **Context Processor Cache Layer** | Added a 15-second TTL in-memory cache for sidebar counters and unread notification queries in `dashboard_nav_context`, ensuring rapid page switching. | **Instant navigation across tabs** |
+| 🔍 **Database Indexing** | **Targeted B-Tree Indexes** | Added composite indexes on frequently filtered columns (`Event.status`, `Event.start_date`, `EventTask.status`, `EventTask.priority`, `EventTask.due_date`, `Expense.status`). | **$O(\log N)$ fast index lookups** |
+| 🚀 **Web Server Concurrency** | **Gunicorn Multithreading** | Configured Gunicorn with `--workers 2 --threads 4` (8 concurrent request threads) to process concurrent HTTP requests in parallel without blocking. | **4x higher concurrent request throughput** |
+| 📦 **Static Asset Delivery** | **WhiteNoise Compression & Caching** | Enabled `CompressedStaticFilesStorage` with Brotli/Gzip compression and long-lived client cache-control headers. | **Fast static asset delivery** |
 
 ---
 
