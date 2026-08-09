@@ -18,10 +18,13 @@ class EventOpsLoginView(auth_views.LoginView):
     redirect_authenticated_user = True
 
     def form_valid(self, form):
+        # Consume any pending logout or pre-auth messages so they don't leak to dashboard
+        list(messages.get_messages(self.request))
         response = super().form_valid(form)
         from apps.audit.services import AuditService
         AuditService.log(self.request.user, "LOGIN", "user", self.request.user.id, "User logged in")
         return response
+
 
 
 class EventOpsLogoutView(View):

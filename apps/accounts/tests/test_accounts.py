@@ -71,6 +71,21 @@ class LogoutViewTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse("login"))
 
+    def test_logout_message_displayed_on_login_and_not_leaked_to_next_login(self):
+        self.client.login(username="logout_user", password="password123")
+        logout_resp = self.client.get(reverse("logout"), follow=True)
+        # 1. Verify logout message is displayed on login page
+        self.assertContains(logout_resp, "You have been signed out successfully.")
+
+        # 2. Login as admin and verify the logout message is NOT present on the dashboard
+        login_resp = self.client.post(reverse("login"), {
+            "username": "logout_user",
+            "password": "password123",
+        }, follow=True)
+        self.assertEqual(login_resp.status_code, 200)
+        self.assertNotContains(login_resp, "You have been signed out successfully.")
+
+
 
 class UserFormTests(TestCase):
     def test_user_form_new_user_requires_password_and_mandatory_fields(self):

@@ -15,11 +15,22 @@
     <div style="font-size: 13.5px; color: var(--muted);">Enterprise Event Operations & RBAC Management</div>
   </div>
 
+  {% if messages %}
+    <div style="margin-bottom: 18px;">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">
+          <span>{{ message }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {% if form.non_field_errors %}
     <div class="alert alert-danger" style="margin-bottom: 18px;">
       {{ form.non_field_errors }}
     </div>
   {% endif %}
+
 
   <form method="post">
     {% csrf_token %}
