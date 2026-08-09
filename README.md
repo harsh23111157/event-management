@@ -15,13 +15,22 @@
 
 ---
 
-## Visual Interface & Application Previews
+## Application Previews & Visual Showcase
 
-### 1. Executive Analytics HUD & Morning Briefing
-![Executive Dashboard HUD](./docs/screenshots/dashboard_overview.png)
+### 1. Executive Operations Dashboard & AI Radar (Full View)
+<p align="center">
+  <img src="./docs/screenshots/01_dashboard.png" width="100%" alt="Executive Operations Dashboard" style="border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);" />
+</p>
 
-### 2. Operational Readiness & 8-Point Audit Scorecard
-![Event Readiness Scorecard](./docs/screenshots/event_readiness.png)
+### 2. Core Operations & Intelligence Subsystems (4-in-1 View)
+
+| 🎯 **Operational Readiness & Audit Scorecard** | 🤖 **AI Operations Advisor & Risk Evaluation** |
+|:---:|:---:|
+| <img src="./docs/screenshots/02_event_readiness.png" width="100%" alt="Event Operational Readiness Scorecard" /> | <img src="./docs/screenshots/03_ai_copilot.png" width="100%" alt="AI Operations Advisor & Risk Evaluation" /> |
+| **Deterministic 8-Point Audit & Health Metrics** | **Executive Summary, Risk Assessment & Priorities** |
+| 📊 **Reports & Attendance Analytics** | 🛡️ **System Audit & Security Logs** |
+| <img src="./docs/screenshots/04_reports_analytics.png" width="100%" alt="Reports & Attendance Analytics" /> | <img src="./docs/screenshots/05_audit_logs.png" width="100%" alt="System Audit & Security Logs" /> |
+| **Lifecycle Breakdown & On-Site Attendance Rates** | **Immutable Historical Compliance & Security Trail** |
 
 ---
 
